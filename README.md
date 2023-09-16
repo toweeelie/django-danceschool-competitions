@@ -1,21 +1,24 @@
 # django-danceschool-competitions
 Competitions app for django-danceschool project
 
-Tested to work with WSL2 on Win11 and VSCode.
-It's better to prepare virtual environment for python packages:
+Tested to work with WSL2 (Ubuntu 22.04) on Win11. Installation steps:
+
+1. It's better to prepare virtual environment for python packages:
       
-      python3 -m venv ./venv 
-      source venv/bin/activate
-      pip install -r requirements.txt
-  
-Next step is to create new DB and superuser:
+            python3 -m venv ./venv 
+            source venv/bin/activate
+
+2. Dependencies installation may take some time, maybe something here is not necessary, but most of installation time is Django installation, so removing unnecessary apps will not reduce installation time dramatically:
       
-      ./manage.py migrate
-      ./manage.py createsuperuser
+            pip install -r requirements.txt
   
-To run project it's enough to press F5 in VSCode, or to execute:
+3. Next step is to create new DB and superuser:
+      
+            ./manage.py migrate
+            ./manage.py createsuperuser
+  
+This should be enough to run project:
       
       ./manage.py runserver
 
-Project sources are inside 'danceschool/competitions'.
-Everything else is a part of original 'django-daanceschool' project and is needed to launch 'competitions'.
+Starting page shows lists of available competitions. These can be added through admin panel: http://127.0.0.0.1:8000/admin
