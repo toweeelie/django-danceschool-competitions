@@ -8,7 +8,7 @@ Tested to work with WSL2 (Ubuntu 22.04) on Win11. Installation steps:
             python3 -m venv ./venv 
             source venv/bin/activate
 
-2. Dependencies installation may take some time, I tried to remove as much as possible, possibly I turned off some useful UI features:
+2. Dependencies installation may take some time, maybe something here is not necessary, but most of installation time is Django installation, so removing unnecessary apps will not reduce installation time dramatically:
       
             pip install -r requirements.txt
   
@@ -21,5 +21,4 @@ This should be enough to run project:
       
       ./manage.py runserver
 
-Project sources are inside 'danceschool/competitions'.
-Everything else is a part of original 'django-daanceschool' project and is needed to launch 'competitions'.
+Starting page shows lists of available competitions. These can be added through admin panel: http://127.0.0.0.1:8000/admin
