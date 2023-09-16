@@ -21,4 +21,6 @@ This should be enough to run project:
       
       ./manage.py runserver
 
-Starting page shows lists of available competitions. These can be added through admin panel: http://127.0.0.0.1:8000/admin
+Starting page shows lists of available competitions. Competition can be added through admin panel: http://127.0.0.0.1:8000/admin/
+
+Skating table calculator is also available at http://127.0.0.1:8000/skatingcalculator/
