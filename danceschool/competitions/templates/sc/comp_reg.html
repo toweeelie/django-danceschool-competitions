@@ -1,0 +1,13 @@
+{% extends "cms/home.html" %}
+{% load cms_tags sekizai_tags i18n %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    {% if error_message %}
+    <p class="error">{{ error_message }}</p>
+    {% endif %}
+    <button type="submit">{% trans 'Register' %}</button>
+</form>
+{% endblock %}

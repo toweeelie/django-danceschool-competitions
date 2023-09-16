@@ -1,0 +1,7 @@
+{% extends "cms/home.html" %}
+{% load cms_tags sekizai_tags i18n %}
+
+{% block content %}
+<p>{% trans 'Registration successfull' %}</p>
+<p>{% trans 'Your number is:' %} {{ comp_num }}</p>
+{% endblock %}

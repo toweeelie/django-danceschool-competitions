@@ -1,0 +1,12 @@
+{% extends "cms/home.html" %}
+{% load cms_tags sekizai_tags i18n %}
+
+{% block content %}
+<ul>
+    {% for comp in competitions %}
+        <li><a href="{% url 'redirect_user' comp.id %}">{{ comp.title }}</a></li>
+    {% empty %}
+        <li>{% trans 'No competitions available' %}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "cms/home.html" %}
+{% load cms_tags sekizai_tags i18n %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+        {% if field.label != '' %}
+            {{ field }}
+            {{ field.label }}
+        {% else %} 
+            {{ field }}
+        {% endif %}    
+    {% endfor %}  
+    {% if error_message %}
+    <p class="error">{{ error_message }}</p>
+    {% else %}
+    <button type="submit">{% trans 'Submit results' %}</button>
+    {% endif %}
+</form>
+{% endblock %}

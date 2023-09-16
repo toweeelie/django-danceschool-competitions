@@ -1,0 +1,40 @@
+{% extends "cms/home.html" %}
+{% load cms_tags sekizai_tags i18n %}
+
+{% block content %}
+    {% if error_message %}
+        <p class="error">{{ error_message }}</p>
+    {% else %}
+        {% if comp_id %}
+            {% if prelims_active %}
+                <a href="{% url 'finals_results' comp_id %}">{% trans 'Go to Finals' %}</a>
+            {% else %}
+                <a href="{% url 'prelims_results' comp_id %}">{% trans 'Go to Prelims' %}</a>
+            {% endif %}
+        {% endif %}
+        <table>
+            {% for comp_role,role_dict in results_dict.items %}
+                <tr>
+                    <th></th>
+                    <th>{{ comp_role }}</th>
+                    {% for judge in role_dict.judges %}
+                        <th style="text-align:center;">{{ judge }}</th>
+                    {% endfor %}
+                </tr>
+                {% for competitor,results_row in role_dict.results.items %}
+                    <tr>
+                        <td style="text-align:right;">{{ competitor.0 }}</td>
+                        {% if competitor.2 and results_row %}
+                        <th>{{ competitor.1 }}</th>
+                        {% else %}
+                        <td>{{ competitor.1 }}</td>
+                        {% endif %}
+                        {% for res in results_row %}
+                            <td style="text-align:center;">{{ res }}</td>
+                        {% endfor %} 
+                    </tr>
+                {% endfor %}
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}
