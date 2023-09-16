@@ -11,7 +11,7 @@ from .forms import SkatingCalculatorForm, InitSkatingCalculatorForm
 
 import unicodecsv as csv
 
-from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
+from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,DanceRole
 from .forms import CompetitionRegForm,PrelimsResultsForm,FinalsResultsForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -301,7 +301,7 @@ def prelims_results(request, comp_id):
         if comp.stage in ['d','f']:
             role_results_dict = {}
             for comp_role in comp.comp_roles.all():
-                role_finalists = Registration.objects.filter(finalist=True,comp_role=comp_role).order_by('comp_num').all()
+                role_finalists = Registration.objects.filter(comp=comp,finalist=True,comp_role=comp_role).order_by('comp_num').all()
                 role_results_dict[comp_role.pluralName] = {
                     'judges':[],'results':{(reg.comp_num,reg.competitor.fullName,reg.finalist):[] for reg in role_finalists}
                 }
@@ -347,7 +347,8 @@ def prelims_results(request, comp_id):
             }            
 
             if comp.stage == 'p' and user_is_judge:
-                for i,reg in enumerate(tmp_dict.keys()):
+                for i,t in enumerate(tmp_dict.keys()):
+                    reg = Registration.objects.filter(comp=comp,comp_num=t[0]).first()
                     if i < comp.finalists_number:
                         reg.finalist=True
                     else:
