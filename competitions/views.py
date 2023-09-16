@@ -2,17 +2,12 @@ from django.views.generic import (
     FormView, CreateView, UpdateView, DetailView, TemplateView, ListView,
     RedirectView
 )
-
 from django.urls import reverse
-from django.http import HttpResponseBadRequest,HttpResponseRedirect,HttpResponse
+from django.http import HttpResponseRedirect,HttpResponse
 from django.utils.translation import ugettext_lazy as _
-from django.db.models import Q,IntegrityError
-from django.utils import timezone
-from datetime import timedelta
-from braces.views import UserFormKwargsMixin, PermissionRequiredMixin, LoginRequiredMixin, StaffuserRequiredMixin
-from danceschool.core.models import Customer
-from danceschool.core.views import EventRegistrationSummaryView
-from .forms import QuickCustomerRegForm, MergeCustomersForm, SkatingCalculatorForm, InitSkatingCalculatorForm
+from django.db import IntegrityError
+from .models import Customer
+from .forms import SkatingCalculatorForm, InitSkatingCalculatorForm
 
 import unicodecsv as csv
 

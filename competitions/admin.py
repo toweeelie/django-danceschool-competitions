@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.core.exceptions import ObjectDoesNotExist
 
-from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
+from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,DanceRole,Customer
 
 class RegistrationInline(admin.TabularInline):
     model = Registration
@@ -95,3 +95,15 @@ class PrelimsResultAdmin(admin.ModelAdmin):
 class FinalsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
     list_filter = ('judge',)
+
+
+@admin.register(DanceRole)
+class DanceRoleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'order') 
+    list_filter = ('name',)
+
+
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ('first_name', 'last_name','email') 
+    list_filter = ('last_name',)
