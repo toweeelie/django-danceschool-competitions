@@ -16,3 +16,6 @@ Next step is to create new DB and superuser:
 To run project it's enough to press F5 in VSCode, or to execute:
       
       ./manage.py runserver
+
+Project sources are inside 'danceschool/competitions'.
+Everything else is a part of original 'django-daanceschool' project and is needed to launch 'competitions'.
