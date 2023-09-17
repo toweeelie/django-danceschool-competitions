@@ -12,6 +12,7 @@
             "args": [
                 "runserver"
             ],
+            "python":"venv/bin/python",
             "django": true,
             "justMyCode": true
         }
