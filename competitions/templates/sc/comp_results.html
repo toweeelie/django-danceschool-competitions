@@ -23,7 +23,7 @@
                 {% for competitor,results_row in role_dict.results.items %}
                     <tr>
                         <td style="text-align:right;">{{ competitor.0 }}</td>
-                        {% if competitor.2 and results_row %}
+                        {% if competitor.2.finalist and results_row %}
                         <th>{{ competitor.1 }}</th>
                         {% else %}
                         <td>{{ competitor.1 }}</td>

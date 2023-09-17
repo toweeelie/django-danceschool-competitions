@@ -303,7 +303,7 @@ def prelims_results(request, comp_id):
             for comp_role in comp.comp_roles.all():
                 role_finalists = Registration.objects.filter(comp=comp,finalist=True,comp_role=comp_role).order_by('comp_num').all()
                 role_results_dict[comp_role.pluralName] = {
-                    'judges':[],'results':{(reg.comp_num,reg.competitor.fullName,reg.finalist):[] for reg in role_finalists}
+                    'judges':[],'results':{(reg.comp_num,reg.competitor.fullName,reg):[] for reg in role_finalists}
                 }
             context['results_dict'] = role_results_dict
         else:
@@ -335,7 +335,7 @@ def prelims_results(request, comp_id):
                 return(points,num_Y,main_judge_points)
 
             tmp_dict = {
-                (reg.comp_num,reg.competitor.fullName,reg.finalist):
+                (reg.comp_num,reg.competitor.fullName,reg):
                     res_list+[res_list.count('Y') + 0.5*res_list.count('Mb'),] 
                 for reg,res_list in results_dict.items() if reg.comp_role == comp_role
             }
@@ -348,7 +348,7 @@ def prelims_results(request, comp_id):
 
             if comp.stage == 'p' and user_is_judge:
                 for i,t in enumerate(tmp_dict.keys()):
-                    reg = Registration.objects.filter(comp=comp,comp_num=t[0]).first()
+                    reg = t[2]
                     if i < comp.finalists_number:
                         reg.finalist=True
                     else:
@@ -397,7 +397,7 @@ def finals_results(request, comp_id):
                 f'{reg.comp_num}/{reg.final_partner.comp_num}',
                 f'{reg.competitor.first_name} - '+
                     f'{reg.final_partner.competitor.first_name}',
-                reg.finalist,
+                reg,
             ): res_list
             for reg,res_list in results_dict.items()
         }
