@@ -167,7 +167,7 @@ class CompetitionRegistrationTest(TestCase):
 
 
         # Log in as admin and fill in draw results
-        self.client.login(username='toweeelie', password='SurStroMMing@666')
+        self.client.login(username='adminuser', password='admpass666')
 
         self.client.logout()
 
