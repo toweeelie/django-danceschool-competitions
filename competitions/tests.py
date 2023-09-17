@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from .models import Competition, Judge, Registration
-
+import logging
 
 crown_bar_jnj ={
     'judges':{
@@ -76,6 +76,12 @@ crown_bar_jnj ={
 
 class CompetitionRegistrationTest(TestCase):
     def setUp(self):
+        # Create superuser
+        self.superuser = User.objects.create_superuser(
+            username='adminuser',
+            password='admpass666',
+            email='admin@example.com'
+        )
         # Create judges 
         self.judge_profiles = {}
         for j,p in crown_bar_jnj['judges'].items():
@@ -90,7 +96,8 @@ class CompetitionRegistrationTest(TestCase):
 
     def test_competition(self):
         # Log in as admin (you can use Client.login)
-        self.client.login(username='adminuser', password='admpass666')
+        logged_in = self.client.login(username='adminuser', password='admpass666')
+        logging.debug('superuser login result: %s' % logged_in)
 
         # Create a new competition
         competition_data = {
@@ -100,6 +107,7 @@ class CompetitionRegistrationTest(TestCase):
         }
 
         response = self.client.post('/admin/competitions/competition/add/', competition_data)
+        logging.debug('response content:%s url:%s'%(response.content,response.url))
         self.assertEqual(response.status_code, 302)  # Check for successful creation (HTTP 302)
 
         # register competitors
