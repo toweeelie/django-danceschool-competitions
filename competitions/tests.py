@@ -79,18 +79,18 @@ class CompetitionRegistrationTest(TestCase):
         # Create judges 
         self.judge_profiles = {}
         for j,p in crown_bar_jnj['judges'].items():
-            jname = [p['name']].split()
+            jname = p['name'].split()
             profile = User.objects.create_user(
                 username=j,
                 password=p['pass'],
                 first_name=jname[0],
                 last_name=jname[1],
             )
-            self.judge_profiles[j:profile]
+            self.judge_profiles[j]=profile
 
     def test_competition(self):
         # Log in as admin (you can use Client.login)
-        self.client.login(username='toweeelie', password='SurStroMMing@666')
+        self.client.login(username='adminuser', password='admpass666')
 
         # Create a new competition
         competition_data = {
@@ -99,11 +99,11 @@ class CompetitionRegistrationTest(TestCase):
             'finalists_number':len(crown_bar_jnj['prelims']['finalists']['leaders'])
         }
 
-        response = self.client.post('/admin/testapp/competition/add/', competition_data)
+        response = self.client.post('/admin/competitions/competition/add/', competition_data)
         self.assertEqual(response.status_code, 302)  # Check for successful creation (HTTP 302)
 
         # register competitors
-        comp = Competition.objects.get(title='Test Competition')
+        comp = Competition.objects.get(title=competition_data['title'])
         for role in ('Leader','Follower'):
             for competitor in crown_bar_jnj[role.lower+'s'].values():
                 response = self.client.post(f'/competitions/{comp.id}/register/', {
@@ -136,7 +136,7 @@ class CompetitionRegistrationTest(TestCase):
             Judge.objects.create(**args)
 
         # change competition stage to prelims
-        response = self.client.post(f'/admin/testapp/competition/{comp.id}/change/',{
+        response = self.client.post(f'/admin/competitions/competition/{comp.id}/change/',{
             'stage':'p',
         })
         self.assertEqual(response.status_code, 302)

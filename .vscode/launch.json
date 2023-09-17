@@ -12,7 +12,7 @@
             "args": [
                 "runserver"
             ],
-            "python":"venv/bin/python",
+            "python":"${workspaceFolder}/venv/bin/python",
             "django": true,
             "justMyCode": true
         }
