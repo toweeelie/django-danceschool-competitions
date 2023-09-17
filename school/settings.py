@@ -31,7 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'competitions',
+    'danceschool.core',
+    'danceschool.competitions',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

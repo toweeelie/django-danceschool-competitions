@@ -20,5 +20,5 @@ from django.conf.urls import include, url
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),
-    url(r'^', include('competitions.urls')),
+    url(r'^', include('danceschool.urls')),
 ]

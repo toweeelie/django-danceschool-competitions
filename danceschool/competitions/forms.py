@@ -8,7 +8,7 @@ from django_addanother.widgets import AddAnotherWidgetWrapper
 from django.urls import reverse_lazy
 from datetime import datetime
 
-from .models import Customer,DanceRole
+from danceschool.core.models import Customer,DanceRole
 from .models import Competition,Registration
 from django.utils.html import format_html
 
