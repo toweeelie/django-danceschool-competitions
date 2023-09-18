@@ -1,6 +1,8 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from .models import Competition, Judge, Registration
+from danceschool.core.models import DanceRole
+from django.core.exceptions import ValidationError
 import logging
 
 crown_bar_jnj ={
@@ -74,7 +76,7 @@ crown_bar_jnj ={
 }
 
 
-class CompetitionRegistrationTest(TestCase):
+class CompetitionTest(TestCase):
     def setUp(self):
         # Create superuser
         self.superuser = User.objects.create_superuser(
@@ -93,6 +95,15 @@ class CompetitionRegistrationTest(TestCase):
                 last_name=jname[1],
             )
             self.judge_profiles[j]=profile
+        # Create dance roles
+        self.dance_roles = []
+        for ridx,role in enumerate(('Leader','Follower')):
+            role_ob = DanceRole.objects.create(
+                name = role,
+                pluralName = role + 's',
+                order = ridx
+            )
+            self.dance_roles.append(role_ob)
 
     def test_competition(self):
         # Log in as admin (you can use Client.login)
@@ -105,9 +116,8 @@ class CompetitionRegistrationTest(TestCase):
             'comp_roles':('Leader','Follower'),
             'finalists_number':len(crown_bar_jnj['prelims']['finalists']['leaders'])
         }
-
         response = self.client.post('/admin/competitions/competition/add/', competition_data)
-        logging.debug('response content:%s url:%s'%(response.content,response.url))
+        logging.debug('response content:%s url:%s'%(response.content.decode(),response.url))
         self.assertEqual(response.status_code, 302)  # Check for successful creation (HTTP 302)
 
         # register competitors
