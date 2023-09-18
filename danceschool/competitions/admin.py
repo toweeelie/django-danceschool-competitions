@@ -54,18 +54,20 @@ class JudgeInlineFormset(forms.models.BaseInlineFormSet):
         for form in self.forms:
             if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                 prelims = form.cleaned_data['prelims']
-                prelims_role = form.cleaned_data['prelims_role']
-                prelims_main_judge = form.cleaned_data['prelims_main_judge']
+                if prelims:
+                    prelims_role = form.cleaned_data['prelims_role']
+                    prelims_main_judge = form.cleaned_data['prelims_main_judge']
+                   
+                    if prelims_role not in prelims_mj_count:
+                        prelims_mj_count[prelims_role] = 0
+                    if prelims_main_judge:
+                        prelims_mj_count[prelims_role] += 1
+                
                 finals = form.cleaned_data['finals']
                 finals_main_judge = form.cleaned_data['finals_main_judge']
-                
-                if prelims_role not in prelims_mj_count:
-                    prelims_mj_count[prelims_role] = 0
-                if prelims and prelims_main_judge:
-                    prelims_mj_count[prelims_role] += 1
-
                 if finals and finals_main_judge:
                     finals_mj_count +=1
+
         counts = list(prelims_mj_count.values())
         counts.append(finals_mj_count)
         for cnt in counts:

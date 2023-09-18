@@ -1,9 +1,16 @@
+#import os
+#os.environ.setdefault("DJANGO_SETTINGS_MODULE", "school.settings")
+#import django
+#django.setup()
+
 from django.test import TestCase
+from django.urls import reverse
 from django.contrib.auth.models import User
 from .models import Competition, Judge, Registration
 from danceschool.core.models import DanceRole
 from django.core.exceptions import ValidationError
-import logging
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 crown_bar_jnj ={
     'judges':{
@@ -94,55 +101,54 @@ class CompetitionTest(TestCase):
                 first_name=jname[0],
                 last_name=jname[1],
             )
-            self.judge_profiles[j]=profile
+            self.judge_profiles[j]=profile.id
         # Create dance roles
-        self.dance_roles = []
-        for ridx,role in enumerate(('Leader','Follower')):
+        self.dance_roles = {}
+        for ridx,role in enumerate(('Follower','Leader',)):
             role_ob = DanceRole.objects.create(
                 name = role,
                 pluralName = role + 's',
                 order = ridx
             )
-            self.dance_roles.append(role_ob)
+            self.dance_roles[role] = role_ob.id
 
     def test_competition(self):
         # Log in as admin (you can use Client.login)
-        logged_in = self.client.login(username='adminuser', password='admpass666')
-        logging.debug('superuser login result: %s' % logged_in)
+        response = self.client.get('/admin/')
+        self.assertEqual(response.status_code, 302)
 
-        # Create a new competition
+        self.client.login(username='adminuser', password='admpass666')
+        response = self.client.get('/admin/')
+        self.assertEqual(response.status_code, 200)
+
+        app_list = response.context_data.get('app_list', [])
+        self.assertNotEqual(app_list, [])
+
+        # Create a new competition with inline forms for judges
+        judge_prefix = 'judge_set'
+        registration_prefix = 'registration_set'
         competition_data = {
             'title': 'Test Competition',
-            'comp_roles':('Leader','Follower'),
-            'finalists_number':len(crown_bar_jnj['prelims']['finalists']['leaders'])
+            'stage': 'r',
+            'comp_roles':(self.dance_roles['Leader'],self.dance_roles['Follower']),
+            'finalists_number':len(crown_bar_jnj['prelims']['finalists']['leaders']),
+            f'{judge_prefix}-TOTAL_FORMS': str(len(self.judge_profiles)),
+            f'{judge_prefix}-INITIAL_FORMS': '0',
+            f'{judge_prefix}-MIN_NUM_FORMS': '0',
+            f'{judge_prefix}-MAX_NUM_FORMS': '1000',
+            f'{registration_prefix}-TOTAL_FORMS': '0',
+            f'{registration_prefix}-INITIAL_FORMS': '0',
+            f'{registration_prefix}-MIN_NUM_FORMS': '0',
+            f'{registration_prefix}-MAX_NUM_FORMS': '1000',
         }
-        response = self.client.post('/admin/competitions/competition/add/', competition_data)
-        logging.debug('response content:%s url:%s'%(response.content.decode(),response.url))
-        self.assertEqual(response.status_code, 302)  # Check for successful creation (HTTP 302)
-
-        # register competitors
-        comp = Competition.objects.get(title=competition_data['title'])
-        for role in ('Leader','Follower'):
-            for competitor in crown_bar_jnj[role.lower+'s'].values():
-                response = self.client.post(f'/competitions/{comp.id}/register/', {
-                    'first_name': competitor.split()[0],
-                    'last_name': competitor.split()[1],
-                    'email': 'noemail@example.com',
-                    'role':role,
-                })
-                self.assertEqual(response.status_code, 302)  # Check for successful registration (HTTP 302)
-
-        registered_competitors = Registration.objects.filter(comp=comp)
-        self.assertEqual(registered_competitors.count(), len(crown_bar_jnj['leaders'])+len(crown_bar_jnj['followers']))
 
         # add judges
-        for j,p in self.judge_profiles.items():
+        for i,(j,p) in enumerate(self.judge_profiles.items()):
             jattr = crown_bar_jnj['judges'][j]['attr']
             args = {
                 'profile':p,
-                'comp':comp,
                 'prelims':True,
-                'prelims_role':'Follower' if 'f' in jattr else 'Leader'
+                'prelims_role':self.dance_roles['Follower'] if 'f' in jattr else self.dance_roles['Leader']
             }
             if 'spm' in jattr:
                 args['prelims_main_judge']= True
@@ -150,13 +156,43 @@ class CompetitionTest(TestCase):
                 args['finals']=True
                 if 'sfm' in jattr:
                     args['finals_main_judge']=True
-            
-            Judge.objects.create(**args)
+            for k,v in args.items():
+                competition_data[f'{judge_prefix}-{i}-{k}'] = v
 
+        response = self.client.get(reverse('admin:competitions_competition_add'))
+        self.assertEqual(response.status_code, 200) 
+        response = self.client.post(reverse('admin:competitions_competition_add'), competition_data)
+        self.assertEqual(response.status_code, 302)
+
+        # register competitors
+        comp = Competition.objects.filter(title=competition_data['title']).first()
+        for role in ('Leader','Follower'):
+            for competitor in crown_bar_jnj[role.lower()+'s'].values():
+                response = self.client.post(
+                    reverse('register_competitor',args=(comp.id,)), 
+                    {
+                        'first_name': competitor.split()[0],
+                        'last_name': competitor.split()[1],
+                        'email': 'noemail@example.com',
+                        'comp_role':self.dance_roles[role],
+                    }
+                )
+                with open('response.html','wt') as fl:
+                    fl.write(response.content.decode())
+                self.assertEqual(response.status_code, 200)  # no redirection here
+
+
+        registered_competitors = Registration.objects.filter(comp=comp).all()
+        self.assertEqual(
+            registered_competitors.count(), 
+            len(crown_bar_jnj['leaders'])+len(crown_bar_jnj['followers'])
+        )
+'''
         # change competition stage to prelims
-        response = self.client.post(f'/admin/competitions/competition/{comp.id}/change/',{
-            'stage':'p',
-        })
+        response = self.client.post(
+            reverse('admin:competitions_competition_change',args=(comp.id,)),
+            {'stage':'p'}
+        )
         self.assertEqual(response.status_code, 302)
 
         # logout as admin
@@ -181,3 +217,4 @@ class CompetitionTest(TestCase):
 
         self.client.logout()
 
+'''
