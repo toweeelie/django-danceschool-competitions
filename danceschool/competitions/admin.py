@@ -38,7 +38,7 @@ class RegistrationInline(admin.TabularInline):
                 kwargs['queryset'] = Registration.objects.filter(
                     comp_role=competition.comp_roles.last(),
                     finalist=True
-                ).exclude(pk=competition.pk)  # Exclude the current registration
+                )
             except ObjectDoesNotExist:
                 pass
 

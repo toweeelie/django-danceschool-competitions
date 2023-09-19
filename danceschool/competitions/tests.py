@@ -271,12 +271,58 @@ class CompetitionTest(TestCase):
                 finalists[role].append(int(match.group(1)))
         for role,result in crown_bar_jnj['prelims']['finalists'].items():
             self.assertSequenceEqual(finalists[role], result)
+            #print(finalists[role])
 
-
-'''
         # Log in as admin and fill in draw results
         self.client.login(username='adminuser', password='admpass666')
 
+        response = self.client.get(
+            reverse('admin:competitions_competition_change',args=(comp.id,)))
+        with open('response_get.html','wt') as fl:
+            fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 200)
+
+        stage_pairs = crown_bar_jnj['finals']['pairs']        
+        competition_data['stage'] = 'f'
+        competition_data = { # clean reg inline fields
+            k:v for k,v in competition_data.items() 
+            if not k.startswith(reg_prefix)
+        }
+
+        draw_data = {f:(l,int(p[1:])) for p,(l,f) in stage_pairs.items()}
+        for inline_formset in response.context['inline_admin_formsets']:
+            prefix = inline_formset.formset.prefix
+            if prefix == reg_prefix:
+                competition_data[f'{prefix}-TOTAL_FORMS']=str(len(inline_formset.formset))
+                competition_data[f'{prefix}-INITIAL_FORMS']=str(len(inline_formset.formset))
+                competition_data[f'{prefix}-MIN_NUM_FORMS'] = '0'
+                competition_data[f'{prefix}-MAX_NUM_FORMS'] = '1000'
+                for form in inline_formset.formset:
+                    for field in form:
+                        html_name = field.html_name
+                        name = field.html_name.split('-')[-1]
+                        comp_num = form['comp_num'].value()
+                        partner_dict = {int(partner.split(' ')[0]):id.value for id, partner in form['final_partner'].field.choices if id != ''}
+                        if form[name].value() != None:
+                            competition_data[html_name] = form[name].value()
+                        if name == 'final_partner':
+                            competition_data[html_name] = partner_dict[draw_data[comp_num][0]]
+                        if name == 'final_heat_order':
+                            competition_data[html_name] = draw_data[comp_num][1]      
+
+        response = self.client.post(
+            reverse('admin:competitions_competition_change',args=(comp.id,)),
+            competition_data
+        )
+        with open('response.html','wt') as fl:
+            fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 302)
+
         self.client.logout()
 
-'''
+        # submit finals results
+        #stage_points = crown_bar_jnj['finals']['points']
+
+        # check places
+        #stage_places = crown_bar_jnj['finals']['places']
+
