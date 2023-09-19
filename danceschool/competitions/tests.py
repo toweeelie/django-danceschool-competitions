@@ -60,6 +60,7 @@ crown_bar_jnj ={
             'j5':{2:'Y',14:'Y',22:'Y',20:'Mb',12:'Mb',18:'Y'},
             'j6':{2:'Y',14:'Mb',8:'Y',22:'Y',20:'Mb',12:'Y'},
         },
+        'legend':{'Y':'yes','Mb':'maybe'},
         'finalists':{
             'leaders':(1,3,7,17,21),
             'followers':(2,8,14,20,22),
@@ -226,21 +227,53 @@ class CompetitionTest(TestCase):
 
         # logout as admin
         self.client.logout()
-'''
+
         # apply prelims marks with judges accounts
         stage_points = crown_bar_jnj['prelims']['points']
+        legend = crown_bar_jnj['prelims']['legend']
         for j,jdict in crown_bar_jnj['judges'].items():
-            jpass = jdict['pass']
+            # get all competitors with certain role and set 'no' by default
             jrole = 'followers' if 'f' in jdict['attr'] else 'leaders'
+            jpoints = {f'competitor_{comp_num}':'no' for comp_num in crown_bar_jnj[jrole]}
 
-            jpoints = {f'competitor_{comp_num}':stage_points[j][comp_num] for comp_num in crown_bar_jnj[jrole]}
+            # apply judge points 
+            for comp_num,point in stage_points[j].items():
+                jpoints[f'competitor_{comp_num}'] = legend[point]
 
-            self.client.login(username=j, password=jpass)
-            response = self.client.post(f'/competitions/{comp.id}/judging/', jpoints)
+            # post data and check redirecton as successfull form submitting
+            self.client.login(username=j, password=jdict['pass'])
+            response = self.client.post(reverse('submit_results',args=(comp.id,)), jpoints)
             self.assertEqual(response.status_code, 302)
+
+            # check prelims_results view to trigger prelims calculations on last judge applying
+            response = self.client.get(reverse('prelims_results',args=(comp.id,)))
+            #with open(f'response_{j}.html','wt') as fl:
+            #    fl.write(response.content.decode())
+            self.assertEqual(response.status_code, 200)
             self.client.logout()
 
+        # check finalists list
+        response = self.client.get(reverse('prelims_results',args=(comp.id,)))
+        #with open('prelims_results.html','wt') as fl:
+        #    fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 200)
 
+        pattern = r'>(\d+)</td>'
+
+        finalists = {'leaders':[],'followers':[]}
+        for ln in response.content.decode().split('\n'):
+            if 'Leaders' in ln:
+                role = 'leaders'
+            if 'Followers' in ln:
+                role = 'followers'
+            match = re.search(pattern, ln)
+            if match:
+                finalists[role].append(int(match.group(1)))
+        for role,result in crown_bar_jnj['prelims']['finalists'].items():
+            self.assertSequenceEqual(finalists[role], result)
+
+
+'''
         # Log in as admin and fill in draw results
         self.client.login(username='adminuser', password='admpass666')
 
