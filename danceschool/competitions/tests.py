@@ -2,13 +2,15 @@
 #os.environ.setdefault("DJANGO_SETTINGS_MODULE", "school.settings")
 #import django
 #django.setup()
-
+import re
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from .models import Competition, Judge, Registration
 from danceschool.core.models import DanceRole
 from django.core.exceptions import ValidationError
+
+from django.forms.formsets import BaseFormSet
 #import logging
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -126,7 +128,7 @@ class CompetitionTest(TestCase):
 
         # Create a new competition with inline forms for judges
         judge_prefix = 'judge_set'
-        registration_prefix = 'registration_set'
+        reg_prefix = 'registration_set'
         competition_data = {
             'title': 'Test Competition',
             'stage': 'r',
@@ -136,10 +138,10 @@ class CompetitionTest(TestCase):
             f'{judge_prefix}-INITIAL_FORMS': '0',
             f'{judge_prefix}-MIN_NUM_FORMS': '0',
             f'{judge_prefix}-MAX_NUM_FORMS': '1000',
-            f'{registration_prefix}-TOTAL_FORMS': '0',
-            f'{registration_prefix}-INITIAL_FORMS': '0',
-            f'{registration_prefix}-MIN_NUM_FORMS': '0',
-            f'{registration_prefix}-MAX_NUM_FORMS': '1000',
+            f'{reg_prefix}-TOTAL_FORMS': '0',
+            f'{reg_prefix}-INITIAL_FORMS': '0',
+            f'{reg_prefix}-MIN_NUM_FORMS': '0',
+            f'{reg_prefix}-MAX_NUM_FORMS': '1000',
         }
 
         # add judges
@@ -167,7 +169,7 @@ class CompetitionTest(TestCase):
         # register competitors
         comp = Competition.objects.filter(title=competition_data['title']).first()
         for role in ('Leader','Follower'):
-            for competitor in crown_bar_jnj[role.lower()+'s'].values():
+            for cnum, competitor in crown_bar_jnj[role.lower()+'s'].items():
                 response = self.client.post(
                     reverse('register_competitor',args=(comp.id,)), 
                     {
@@ -177,27 +179,54 @@ class CompetitionTest(TestCase):
                         'comp_role':self.dance_roles[role],
                     }
                 )
-                with open('response.html','wt') as fl:
-                    fl.write(response.content.decode())
+                #with open('response.html','wt') as fl:
+                #    fl.write(response.content.decode())
                 self.assertEqual(response.status_code, 200)  # no redirection here
-
+                
+                # check if assigned number is indeed the value from the table
+                pattern = r'Your number is: (\d+)'
+                match = re.search(pattern, response.content.decode())
+                assingned_number = int(match.group(1))
+                self.assertEqual(assingned_number, cnum)
 
         registered_competitors = Registration.objects.filter(comp=comp).all()
         self.assertEqual(
             registered_competitors.count(), 
             len(crown_bar_jnj['leaders'])+len(crown_bar_jnj['followers'])
         )
-'''
-        # change competition stage to prelims
+
+        # check-in competitors and change competition stage to prelims
+        response = self.client.get(
+            reverse('admin:competitions_competition_change',args=(comp.id,)))
+        #with open('response_get.html','wt') as fl:
+        #    fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 200)
+            
+        competition_data['stage'] = 'p'
+        for inline_formset in response.context['inline_admin_formsets']:
+            prefix = inline_formset.formset.prefix
+            competition_data[f'{prefix}-TOTAL_FORMS']=str(len(inline_formset.formset))
+            competition_data[f'{prefix}-INITIAL_FORMS']=str(len(inline_formset.formset))
+            for form in inline_formset.formset:
+                for field in form:
+                    html_name = field.html_name
+                    name = field.html_name.split('-')[-1]
+                    if form[name].value() != None:
+                        competition_data[html_name] = form[name].value()
+                        if prefix == reg_prefix and name == 'comp_checked_in':
+                            competition_data[html_name] = True
+
         response = self.client.post(
             reverse('admin:competitions_competition_change',args=(comp.id,)),
-            {'stage':'p'}
+            competition_data
         )
+        #with open('response.html','wt') as fl:
+        #    fl.write(response.content.decode())
         self.assertEqual(response.status_code, 302)
 
         # logout as admin
         self.client.logout()
-
+'''
         # apply prelims marks with judges accounts
         stage_points = crown_bar_jnj['prelims']['points']
         for j,jdict in crown_bar_jnj['judges'].items():
