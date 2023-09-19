@@ -278,8 +278,8 @@ class CompetitionTest(TestCase):
 
         response = self.client.get(
             reverse('admin:competitions_competition_change',args=(comp.id,)))
-        with open('response_get.html','wt') as fl:
-            fl.write(response.content.decode())
+        #with open('response_get.html','wt') as fl:
+        #    fl.write(response.content.decode())
         self.assertEqual(response.status_code, 200)
 
         stage_pairs = crown_bar_jnj['finals']['pairs']        
@@ -314,15 +314,55 @@ class CompetitionTest(TestCase):
             reverse('admin:competitions_competition_change',args=(comp.id,)),
             competition_data
         )
-        with open('response.html','wt') as fl:
-            fl.write(response.content.decode())
+        #with open('response.html','wt') as fl:
+        #    fl.write(response.content.decode())
         self.assertEqual(response.status_code, 302)
-
         self.client.logout()
 
         # submit finals results
-        #stage_points = crown_bar_jnj['finals']['points']
+        stage_points = crown_bar_jnj['finals']['points']
+        for j,jdict in crown_bar_jnj['judges'].items():
+            if 'sf' in jdict['attr']:
+                # apply judge points 
+                jpoints = {f'competitor_{stage_pairs[pair][1]}': point for pair,point in stage_points[j].items()}
+
+                # post data and check redirecton as successfull form submitting
+                self.client.login(username=j, password=jdict['pass'])
+                response = self.client.post(reverse('submit_results',args=(comp.id,)), jpoints)
+                self.assertEqual(response.status_code, 302)
+
+                # check finals_results view to trigger finals calculations on last judge applying
+                response = self.client.get(reverse('finals_results',args=(comp.id,)))
+                #with open(f'response_{j}.html','wt') as fl:
+                #    fl.write(response.content.decode())
+                self.assertEqual(response.status_code, 200)
+                self.client.logout()
+
+        # make results visible to everyone
+        self.client.login(username='adminuser', password='admpass666')
+        competition_data['results_visible'] = True
+        response = self.client.post(
+            reverse('admin:competitions_competition_change',args=(comp.id,)),
+            competition_data
+        )
+        #with open('response.html','wt') as fl:
+        #    fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 302)
+        self.client.logout()
 
         # check places
-        #stage_places = crown_bar_jnj['finals']['places']
+        stage_places = crown_bar_jnj['finals']['places']
+        response = self.client.get(reverse('finals_results',args=(comp.id,)))
+        #with open('response_get.html','wt') as fl:
+        #    fl.write(response.content.decode())
+        self.assertEqual(response.status_code, 200)
+
+        pattern = r'>(\d+)/(\d+)</td>'
+        cur_place = 1
+        for ln in response.content.decode().split('\n'):
+            match = re.search(pattern, ln)
+            if match:
+                pair_nums = (int(match.group(2)),int(match.group(1)))
+                self.assertSequenceEqual(stage_pairs[stage_places[cur_place]],pair_nums)
+                cur_place += 1
 
