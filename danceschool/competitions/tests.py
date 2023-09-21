@@ -1,20 +1,14 @@
-#import os
-#os.environ.setdefault("DJANGO_SETTINGS_MODULE", "school.settings")
-#import django
-#django.setup()
 import re
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
-from .models import Competition, Judge, Registration
+from .models import Competition, Registration
 from danceschool.core.models import DanceRole
-from django.core.exceptions import ValidationError
 
-from django.forms.formsets import BaseFormSet
 #import logging
 #logging.basicConfig(level=logging.DEBUG)
 
-crown_bar_jnj ={
+testing_jnj_data ={
     'judges':{
         'j1':{'name':'Марія Тітова','attr':('sp','l','spm','sf',),'pass':r'$@#$Vd3@$'},
         'j2':{'name':'Світлана Матових','attr':('sp','l','sf',),'pass':r'Ab3f%O?06'},
@@ -89,22 +83,12 @@ crown_bar_jnj ={
 class CompetitionTest(TestCase):
     def setUp(self):
         # Create superuser
-        self.superuser = User.objects.create_superuser(
-            username='adminuser',
-            password='admpass666',
-            email='admin@example.com'
-        )
-        # Create judges 
-        self.judge_profiles = {}
-        for j,p in crown_bar_jnj['judges'].items():
-            jname = p['name'].split()
-            profile = User.objects.create_user(
-                username=j,
-                password=p['pass'],
-                first_name=jname[0],
-                last_name=jname[1],
-            )
-            self.judge_profiles[j]=profile.id
+        self.superuser = { 
+            'username':'adminuser',
+            'password':'admpass666',
+            'email':'admin@example.com'
+        }
+        self.superuser['obj'] = User.objects.create_superuser(**self.superuser)
         # Create dance roles
         self.dance_roles = {}
         for ridx,role in enumerate(('Follower','Leader',)):
@@ -116,11 +100,24 @@ class CompetitionTest(TestCase):
             self.dance_roles[role] = role_ob.id
 
     def test_competition(self):
+
+        # Get or create users for judges 
+        self.judge_profiles = {}
+        for j,p in testing_jnj_data['judges'].items():
+            jname = p['name'].split()
+            profile = User.objects.create_user(
+                username=j,
+                password=p['pass'],
+                first_name=jname[0],
+                last_name=jname[1],
+            )
+            self.judge_profiles[j]=profile.id
+
         # Log in as admin (you can use Client.login)
         response = self.client.get('/admin/')
         self.assertEqual(response.status_code, 302)
 
-        self.client.login(username='adminuser', password='admpass666')
+        self.client.login(username=self.superuser['username'], password=self.superuser['password'])
         response = self.client.get('/admin/')
         self.assertEqual(response.status_code, 200)
 
@@ -134,7 +131,7 @@ class CompetitionTest(TestCase):
             'title': 'Test Competition',
             'stage': 'r',
             'comp_roles':(self.dance_roles['Leader'],self.dance_roles['Follower']),
-            'finalists_number':len(crown_bar_jnj['prelims']['finalists']['leaders']),
+            'finalists_number':len(testing_jnj_data['prelims']['finalists']['leaders']),
             f'{judge_prefix}-TOTAL_FORMS': str(len(self.judge_profiles)),
             f'{judge_prefix}-INITIAL_FORMS': '0',
             f'{judge_prefix}-MIN_NUM_FORMS': '0',
@@ -147,7 +144,7 @@ class CompetitionTest(TestCase):
 
         # add judges
         for i,(j,p) in enumerate(self.judge_profiles.items()):
-            jattr = crown_bar_jnj['judges'][j]['attr']
+            jattr = testing_jnj_data['judges'][j]['attr']
             args = {
                 'profile':p,
                 'prelims':True,
@@ -170,7 +167,7 @@ class CompetitionTest(TestCase):
         # register competitors
         comp = Competition.objects.filter(title=competition_data['title']).first()
         for role in ('Leader','Follower'):
-            for cnum, competitor in crown_bar_jnj[role.lower()+'s'].items():
+            for cnum, competitor in testing_jnj_data[role.lower()+'s'].items():
                 response = self.client.post(
                     reverse('register_competitor',args=(comp.id,)), 
                     {
@@ -193,7 +190,7 @@ class CompetitionTest(TestCase):
         registered_competitors = Registration.objects.filter(comp=comp).all()
         self.assertEqual(
             registered_competitors.count(), 
-            len(crown_bar_jnj['leaders'])+len(crown_bar_jnj['followers'])
+            len(testing_jnj_data['leaders'])+len(testing_jnj_data['followers'])
         )
 
         # check-in competitors and change competition stage to prelims
@@ -229,12 +226,12 @@ class CompetitionTest(TestCase):
         self.client.logout()
 
         # apply prelims marks with judges accounts
-        stage_points = crown_bar_jnj['prelims']['points']
-        legend = crown_bar_jnj['prelims']['legend']
-        for j,jdict in crown_bar_jnj['judges'].items():
+        stage_points = testing_jnj_data['prelims']['points']
+        legend = testing_jnj_data['prelims']['legend']
+        for j,jdict in testing_jnj_data['judges'].items():
             # get all competitors with certain role and set 'no' by default
             jrole = 'followers' if 'f' in jdict['attr'] else 'leaders'
-            jpoints = {f'competitor_{comp_num}':'no' for comp_num in crown_bar_jnj[jrole]}
+            jpoints = {f'competitor_{comp_num}':'no' for comp_num in testing_jnj_data[jrole]}
 
             # apply judge points 
             for comp_num,point in stage_points[j].items():
@@ -269,12 +266,12 @@ class CompetitionTest(TestCase):
             match = re.search(pattern, ln)
             if match:
                 finalists[role].append(int(match.group(1)))
-        for role,result in crown_bar_jnj['prelims']['finalists'].items():
+        for role,result in testing_jnj_data['prelims']['finalists'].items():
             self.assertSequenceEqual(finalists[role], result)
             #print(finalists[role])
 
         # Log in as admin and fill in draw results
-        self.client.login(username='adminuser', password='admpass666')
+        self.client.login(username=self.superuser['username'], password=self.superuser['password'])
 
         response = self.client.get(
             reverse('admin:competitions_competition_change',args=(comp.id,)))
@@ -282,7 +279,7 @@ class CompetitionTest(TestCase):
         #    fl.write(response.content.decode())
         self.assertEqual(response.status_code, 200)
 
-        stage_pairs = crown_bar_jnj['finals']['pairs']        
+        stage_pairs = testing_jnj_data['finals']['pairs']        
         competition_data['stage'] = 'f'
         competition_data = { # clean reg inline fields
             k:v for k,v in competition_data.items() 
@@ -320,8 +317,8 @@ class CompetitionTest(TestCase):
         self.client.logout()
 
         # submit finals results
-        stage_points = crown_bar_jnj['finals']['points']
-        for j,jdict in crown_bar_jnj['judges'].items():
+        stage_points = testing_jnj_data['finals']['points']
+        for j,jdict in testing_jnj_data['judges'].items():
             if 'sf' in jdict['attr']:
                 # apply judge points 
                 jpoints = {f'competitor_{stage_pairs[pair][1]}': point for pair,point in stage_points[j].items()}
@@ -339,7 +336,7 @@ class CompetitionTest(TestCase):
                 self.client.logout()
 
         # make results visible to everyone
-        self.client.login(username='adminuser', password='admpass666')
+        self.client.login(username=self.superuser['username'], password=self.superuser['password'])
         competition_data['results_visible'] = True
         response = self.client.post(
             reverse('admin:competitions_competition_change',args=(comp.id,)),
@@ -351,7 +348,7 @@ class CompetitionTest(TestCase):
         self.client.logout()
 
         # check places
-        stage_places = crown_bar_jnj['finals']['places']
+        stage_places = testing_jnj_data['finals']['places']
         response = self.client.get(reverse('finals_results',args=(comp.id,)))
         #with open('response_get.html','wt') as fl:
         #    fl.write(response.content.decode())
