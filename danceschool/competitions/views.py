@@ -10,6 +10,7 @@ from danceschool.core.models import Customer
 from .forms import SkatingCalculatorForm, InitSkatingCalculatorForm
 
 import unicodecsv as csv
+from functools import cmp_to_key
 
 from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,DanceRole
 from .forms import CompetitionRegForm,PrelimsResultsForm,FinalsResultsForm
@@ -321,25 +322,62 @@ def prelims_results(request, comp_id):
         role_results_dict = {}
         for comp_role in comp.comp_roles.all():
 
-            def prelims_priority_rules(item):
-                points = item[1][-1]
-
-                num_Y = item[1].count('Y')
-
-                main_judge_points = 0
-                if item[1][main_judge_idx[comp_role]] == 'Y':
-                    main_judge_points = 1
-                elif item[1][main_judge_idx[comp_role]] == 'Mb':
-                    main_judge_points = 0.5
-                    
-                return(points,num_Y,main_judge_points)
+            def prelims_priority_rules(item1,item2):
+                # compare by points
+                c1_points = item1[1][-1]
+                c2_points = item2[1][-1]
+                #print('points:',c1_points,c2_points)
+                if c1_points > c2_points:
+                    return 1
+                elif c1_points < c2_points:
+                    return -1
+                else:
+                    # compare by Y's
+                    c1_points = item1[1].count('Y')
+                    c2_points = item2[1].count('Y')
+                    #print('Ys:',c1_points,c2_points)
+                    if c1_points > c2_points:
+                        return 1
+                    elif c1_points < c2_points:
+                        return -1
+                    else:
+                        # compare with each other
+                        new_dict = {item1[0]:[],item2[0]:[]}
+                        for judge_points in zip(item1[1],item2[1]):
+                            if judge_points == ('Y','Mb'):
+                                judge_points = ('Y','')
+                            if judge_points == ('Mb','Y'):
+                                judge_points = ('','Y')
+                            new_dict[item1[0]].append(judge_points[0])
+                            new_dict[item2[0]].append(judge_points[1])
+                        
+                        c1_points = new_dict[item1[0]].count('Y')+ 0.5*new_dict[item1[0]].count('Mb')
+                        c2_points = new_dict[item2[0]].count('Y')+ 0.5*new_dict[item2[0]].count('Mb')
+                        #print('c2c:',c1_points,c2_points)
+                        if c1_points > c2_points:
+                            return 1
+                        elif c1_points < c2_points:
+                            return -1
+                        else:
+                            # compare by main judge
+                            weight = {'Y':1,'Mb':0.5,'':0}
+                            c1_points = weight[item1[1][main_judge_idx[comp_role]]]
+                            c2_points = weight[item2[1][main_judge_idx[comp_role]]]
+                            #print('main judge:',c1_points,c2_points)
+                            if c1_points > c2_points:
+                                return 1
+                            elif c1_points < c2_points:
+                                return -1
+                            else:
+                                # equal
+                                return 0
 
             tmp_dict = {
                 (reg.comp_num,reg.competitor.fullName,reg):
                     res_list+[res_list.count('Y') + 0.5*res_list.count('Mb'),] 
                 for reg,res_list in results_dict.items() if reg.comp_role == comp_role
             }
-            tmp_dict = dict(sorted(tmp_dict.items(), key=prelims_priority_rules, reverse=True))
+            tmp_dict = dict(sorted(tmp_dict.items(), key=cmp_to_key(prelims_priority_rules), reverse=True))
 
             role_results_dict[comp_role.pluralName] = {
                 'judges':[j.first_name for j in judges[comp_role]],
