@@ -35,5 +35,8 @@
                 {% endfor %}
             {% endfor %}
         </table>
+        {% if additional_info %}
+        <p class="warning">{{ additional_info }}</p>
+        {% endif %}
     {% endif %}
 {% endblock %}

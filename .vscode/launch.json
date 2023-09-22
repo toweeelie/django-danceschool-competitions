@@ -5,12 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Django",
+            "name": "run server",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/manage.py",
             "args": [
                 "runserver"
+            ],
+            "python":"${workspaceFolder}/venv/bin/python",
+            "django": true,
+            "justMyCode": true
+        },
+        {
+            "name": "run tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": [
+                "test",
+                "danceschool.competitions"
             ],
             "python":"${workspaceFolder}/venv/bin/python",
             "django": true,

@@ -299,16 +299,19 @@ def prelims_results(request, comp_id):
             error_message = _("Waiting other judges to finish.")
             context['error_message'] = error_message
     elif not comp.results_visible:
+        error_message = _("Prelims results are not available yet.")
         if comp.stage in ['d','f']:
             role_results_dict = {}
             for comp_role in comp.comp_roles.all():
                 role_finalists = Registration.objects.filter(comp=comp,finalist=True,comp_role=comp_role).order_by('comp_num').all()
-                role_results_dict[comp_role.pluralName] = {
-                    'judges':[],'results':{(reg.comp_num,reg.competitor.fullName,reg):[] for reg in role_finalists}
-                }
+                if role_finalists:
+                    role_results_dict[comp_role.pluralName] = {
+                        'judges':[],'results':{(reg.comp_num,reg.competitor.fullName,reg):[] for reg in role_finalists}
+                    }
+                else:
+                    context['error_message'] = error_message
             context['results_dict'] = role_results_dict
         else:
-            error_message = _("Prelims results are not available yet.")
             context['error_message'] = error_message
 
     if context == {}:
@@ -369,14 +372,24 @@ def prelims_results(request, comp_id):
                             elif c1_points < c2_points:
                                 return -1
                             else:
-                                # equal
-                                return 0
+                                # compare by finalist mark (conflict already resolved)
+                                c1_points = 1 if item1[0][2].finalist else 0
+                                c2_points = 1 if item2[0][2].finalist else 0
+                                if c1_points > c2_points:
+                                    return 1
+                                elif c1_points < c2_points:
+                                    return -1
+                                else:
+                                    conflicts.append((item1[0][0],item2[0][0]))
+                                    # equal
+                                    return 0
 
             tmp_dict = {
                 (reg.comp_num,reg.competitor.fullName,reg):
                     res_list+[res_list.count('Y') + 0.5*res_list.count('Mb'),] 
                 for reg,res_list in results_dict.items() if reg.comp_role == comp_role
             }
+            conflicts = []
             tmp_dict = dict(sorted(tmp_dict.items(), key=cmp_to_key(prelims_priority_rules), reverse=True))
 
             role_results_dict[comp_role.pluralName] = {
@@ -385,13 +398,25 @@ def prelims_results(request, comp_id):
             }            
 
             if comp.stage == 'p' and user_is_judge:
-                for i,t in enumerate(tmp_dict.keys()):
-                    reg = t[2]
-                    if i < comp.finalists_number:
-                        reg.finalist=True
-                    else:
-                        reg.finalist=False
-                    reg.save()
+                # check if unresolved conflicts have impact on final list
+                unique_conflicts = set(conflicts)
+                conflicts = {}
+                for c0,c1 in unique_conflicts:
+                    places = { t[0]:i for i,t in enumerate(tmp_dict.keys())}    
+                    if (places[c0] < comp.finalists_number) != (places[c1] < comp.finalists_number):
+                        conflicts[c0]=places[c0]
+                        conflicts[c1]=places[c1]
+                        
+                if conflicts != {}:
+                    context['additional_info'] = _(f"Conflicts for competitors {list(conflicts.keys())} need to be resolved manually")
+                else:
+                    for i,t in enumerate(tmp_dict.keys()):
+                        reg = t[2]
+                        if i < comp.finalists_number:
+                            reg.finalist=True
+                        else:
+                            reg.finalist=False
+                        reg.save()
 
         if comp.stage == 'p' and user_is_judge:
             comp.stage = 'd'
