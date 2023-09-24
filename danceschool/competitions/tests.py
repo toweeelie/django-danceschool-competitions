@@ -9,6 +9,7 @@ from danceschool.core.models import DanceRole
 #logging.basicConfig(level=logging.DEBUG)
 
 testing_jnj_data ={
+    'name': 'Crown Bar JnJ',
     'judges':{
         'j1':{'name':'Марія Тітова','attr':('sp','l','spm','sf',),'pass':r'$@#$Vd3@$'},
         'j2':{'name':'Світлана Матових','attr':('sp','l','sf',),'pass':r'Ab3f%O?06'},
@@ -128,7 +129,7 @@ class CompetitionTest(TestCase):
         judge_prefix = 'judge_set'
         reg_prefix = 'registration_set'
         competition_data = {
-            'title': 'Test Competition',
+            'title': testing_jnj_data['name'],
             'stage': 'r',
             'comp_roles':(self.dance_roles['Leader'],self.dance_roles['Follower']),
             'finalists_number':len(testing_jnj_data['prelims']['finalists']['leaders']),

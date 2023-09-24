@@ -22,7 +22,13 @@ class RegistrationInline(admin.TabularInline):
         # Customize the queryset based on the stage attribute of the Competition object
         queryset = super().get_queryset(request)
 
+        if competition and competition.stage == 'r':
+            cnt_list = [f'{role.pluralName}:{queryset.filter(comp_role=role).count()}' for role in competition.comp_roles.all()]
+            cnt_str = '/'.join(cnt_list)
+            self.verbose_name_plural = f'{self.verbose_name_plural.split()[0]} ({cnt_str})' 
+
         if competition and competition.stage in ['d','f']:
+            self.verbose_name_plural = self.verbose_name_plural.split()[0]
             queryset = queryset.filter(finalist=True, comp_role=competition.comp_roles.first())
 
         return queryset
