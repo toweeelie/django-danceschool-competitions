@@ -294,7 +294,7 @@ def submit_results(request, comp_id):
 
 def prelims_results(request, comp_id):
     comp = get_object_or_404(Competition, pk=comp_id)
-    results = PrelimsResult.objects.filter(judge__comp=comp).order_by('comp_reg','judge').all()
+    results = PrelimsResult.objects.filter(judge__comp=comp).order_by('comp_reg','judge__profile').all()
     judges = {}
     main_judge_idx = {}
     all_results_ready = True
