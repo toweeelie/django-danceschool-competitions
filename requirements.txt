@@ -38,3 +38,5 @@ pytz>=2017.2
 requests>=2.6.0
 six>=1.10.0
 unicodecsv>=0.14.1
+tabulate
+
