@@ -79,11 +79,29 @@ def calculate_skating(judges_list,data_dict):
                     # process search across the rest of the table for equal cases
                     place = skating_rules(pcol+1, place, { i:l for i,l in sub_sctable.items() if i in equal_indexes })
 
-        # reached the end of the table, share several places among all equal cases
+        # reached the end of the table
         if init_col == competitors:
-            shared_places = '/'.join(map(str,range(place,place+len(sub_sctable))))
-            for cidx in sub_sctable.keys():
-                sctable[cidx+1].append(shared_places)
+            # check if we are able to resolve the tie comparing cometitors points to each other 
+            if len(sub_sctable)+1 < len(sctable):
+                # calculate new table with competitors in tie
+                c2c_data_dict = {k:[] for k in sub_sctable.keys()}
+                for j_idx in range(1,judges+1):
+                    c2c_points_ordered = sorted([c_row[j_idx] for c_row in sub_sctable.values()])
+                    for c_idx,c_row in sub_sctable.items():
+                        c2c = c2c_points_ordered.index(c_row[j_idx])+1
+                        c2c_data_dict[c_idx].append(c2c)
+                # run whole procedure on reduced table
+                c2c_sctable = calculate_skating(judges_list, c2c_data_dict)
+                # copy places from reduced table to main table
+                for row in c2c_sctable[1:]:
+                    cidx = row[0]
+                    cplace = row[-1]
+                    sctable[cidx+1].append(cplace)
+            else:
+                # share several places among rest of equal cases
+                shared_places = '/'.join(map(str,range(place,place+len(sub_sctable))))
+                for cidx in sub_sctable.keys():
+                    sctable[cidx+1].append(shared_places)
             place += len(sub_sctable)
         return place
 
@@ -93,9 +111,9 @@ def calculate_skating(judges_list,data_dict):
 
     # clean zeroes from the table
     for ridx, row in enumerate(sctable):
-        for cidx, cell in enumerate(row):
-            if sctable[ridx][cidx] == 0:
-                sctable[ridx][cidx] = ''
+        for cidx, cell in enumerate(row[1:]):
+            if sctable[ridx][cidx+1] == 0:
+                sctable[ridx][cidx+1] = ''
 
     return sctable
 

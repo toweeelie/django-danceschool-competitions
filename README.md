@@ -26,3 +26,7 @@ Starting page is http://127.0.0.1:8000/competitions/ It shows lists of available
 Skating table calculator is also available at http://127.0.0.1:8000/competitions/skatingcalculator/
 
 My code is inside danceschool/competitions, everything else is a part of original django-danceschool project and needed to keep compartibility with it.
+
+Command line for testing:
+
+      ./manage.py test danceschool.competitions
