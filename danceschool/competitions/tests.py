@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from .models import Competition, Registration
 from danceschool.core.models import DanceRole
 
+from tabulate import tabulate 
+from danceschool.competitions.views import calculate_skating
+
 #import logging
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -364,3 +367,35 @@ class CompetitionTest(TestCase):
                 self.assertSequenceEqual(stage_pairs[stage_places[cur_place]],pair_nums)
                 cur_place += 1
 
+class SkatingCalculatorTest(TestCase):
+    def test_sk(self):
+        cases = {
+            1:{
+                'judges_list':['Jessy','Kuschi','Tanya','Kuva','Sondre'],
+                'data_dict':{
+                    'Oleksii & Vasilena': [ 4,6,4,4,3 ],
+                    'Alexander & Dona': [ 6,7,5,6,6 ],
+                    'Konstantin & Iliana': [ 7,5,6,7,7 ],
+                    'Serhii & Arkadiia': [ 1,2,2,3,1 ],
+                    'Martin & Viktoriia': [ 5,4,7,5,5 ],
+                    'Hristian & Anna': [ 3,1,3,2,4 ],
+                    'Niki & Iryna': [ 2,3,1,1,2 ],
+                },
+                'expected_results':[4,6,7,1,5,3,2],
+            },
+            2:{
+                'judges_list':['j1','j2','j3'],
+                'data_dict':{
+                    'c1':[1,2,3],
+                    'c2':[2,3,1],
+                    'c3':[3,1,2],
+                    'c4':[4,4,4],
+                },
+                'expected_results':['1/2/3','1/2/3','1/2/3',4],
+            }
+        }
+        
+        for case in cases.values():
+            sctable = calculate_skating(case['judges_list'],case['data_dict'])  
+            sctable_results = [row[-1] for row in sctable[1:]]
+            self.assertSequenceEqual(case['expected_results'],sctable_results,tabulate(sctable))
