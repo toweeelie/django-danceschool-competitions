@@ -369,8 +369,8 @@ class CompetitionTest(TestCase):
 
 class SkatingCalculatorTest(TestCase):
     def test_sk(self):
-        cases = {
-            1:{
+        cases = [
+            {
                 'judges_list':['Jessy','Kuschi','Tanya','Kuva','Sondre'],
                 'data_dict':{
                     'Oleksii & Vasilena': [ 4,6,4,4,3 ],
@@ -383,7 +383,7 @@ class SkatingCalculatorTest(TestCase):
                 },
                 'expected_results':[4,6,7,1,5,3,2],
             },
-            2:{
+            {
                 'judges_list':['j1','j2','j3'],
                 'data_dict':{
                     'c1':[1,2,3],
@@ -393,9 +393,9 @@ class SkatingCalculatorTest(TestCase):
                 },
                 'expected_results':['1/2/3','1/2/3','1/2/3',4],
             }
-        }
+        ]
         
-        for case in cases.values():
+        for case in cases:
             sctable = calculate_skating(case['judges_list'],case['data_dict'])  
             sctable_results = [row[-1] for row in sctable[1:]]
             self.assertSequenceEqual(case['expected_results'],sctable_results,tabulate(sctable))
