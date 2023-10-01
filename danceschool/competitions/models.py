@@ -65,7 +65,7 @@ class Judge(models.Model):
     )
 
     def __str__(self):
-        return f'{self.profile.first_name} {self.profile.last_name}'
+        return f'{self.profile.first_name} {self.profile.last_name} ({self.comp.title})'
 
     class Meta:
         unique_together = ('profile', 'comp')

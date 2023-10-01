@@ -246,7 +246,7 @@ def submit_results(request, comp_id):
         return render(request, 'sc/comp_judge.html', {'comp': comp, 'error_message':error_message})
     
     if comp.stage == 'p':
-        registrations = Registration.objects.filter(comp=comp,comp_role=judge.prelims_role).order_by('comp_num') 
+        registrations = Registration.objects.filter(comp=comp,comp_role=judge.prelims_role,comp_checked_in=True).order_by('comp_num') 
         redirect_view = 'prelims_results' 
         if PrelimsResult.objects.filter(judge__profile=request.user,judge__comp=comp).exists():
             return redirect(redirect_view, comp_id=comp_id)
