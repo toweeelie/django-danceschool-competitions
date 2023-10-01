@@ -1,15 +1,8 @@
 from django import forms
-from django.utils.translation import ugettext, ugettext_lazy as _
-from django.db.models import F, Q, Value, CharField
+from django.utils.translation import ugettext_lazy as _
 from dal import autocomplete
-from django.contrib.admin.widgets import RelatedFieldWidgetWrapper
 from django.core.exceptions import ValidationError
-from django_addanother.widgets import AddAnotherWidgetWrapper
-from django.urls import reverse_lazy
-from datetime import datetime
-
-from danceschool.core.models import Customer,DanceRole
-from .models import Competition,Registration
+from danceschool.core.models import Customer
 from django.utils.html import format_html
 
 class InitSkatingCalculatorForm(forms.Form):
@@ -56,7 +49,7 @@ class CompetitionRegForm(forms.Form):
     '''
     first_name = forms.CharField(max_length=100,label=_('First Name'))
     last_name = forms.CharField(max_length=100,label=_('Last Name'))
-    email = forms.EmailField(max_length=100,label=_('Email'))
+    email = forms.EmailField(max_length=100,label=_('Email'),initial='noemail@example.com')
     comp_role = forms.ChoiceField(choices=[],label=_('Dance Role'))
 
     class Meta:

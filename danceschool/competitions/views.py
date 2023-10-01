@@ -1,7 +1,4 @@
-from django.views.generic import (
-    FormView, CreateView, UpdateView, DetailView, TemplateView, ListView,
-    RedirectView
-)
+from django.views.generic import FormView,ListView
 from django.urls import reverse
 from django.http import HttpResponseRedirect,HttpResponse
 from django.utils.translation import ugettext_lazy as _
@@ -254,7 +251,7 @@ def submit_results(request, comp_id):
         if PrelimsResult.objects.filter(judge__profile=request.user,judge__comp=comp).exists():
             return redirect(redirect_view, comp_id=comp_id)
     else:
-        registrations = Registration.objects.exclude(final_partner__isnull=True).order_by('final_heat_order')
+        registrations = Registration.objects.filter(comp=comp,final_partner__isnull=False).order_by('final_heat_order')
         redirect_view = 'finals_results'
         if FinalsResult.objects.filter(judge__profile=request.user,judge__comp=comp).exists():
             return redirect(redirect_view, comp_id=comp_id)

@@ -23,7 +23,7 @@ class RegistrationInline(admin.TabularInline):
         queryset = super().get_queryset(request)
 
         if competition and competition.stage == 'r':
-            cnt_list = [f'{role.pluralName}:{queryset.filter(comp_role=role).count()}' for role in competition.comp_roles.all()]
+            cnt_list = [f'{role.pluralName}:{queryset.filter(comp=competition,comp_role=role).count()}' for role in competition.comp_roles.all()]
             cnt_str = '/'.join(cnt_list)
             self.verbose_name_plural = f'{self.verbose_name_plural.split()[0]} ({cnt_str})' 
 
@@ -42,6 +42,7 @@ class RegistrationInline(admin.TabularInline):
 
                 # Customize the queryset for the final_partner field
                 kwargs['queryset'] = Registration.objects.filter(
+                    comp=competition,
                     comp_role=competition.comp_roles.last(),
                     finalist=True
                 )
