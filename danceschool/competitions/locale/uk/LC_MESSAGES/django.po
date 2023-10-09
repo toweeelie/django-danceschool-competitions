@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-09 11:21+0000\n"
-"PO-Revision-Date: 2023-10-09 14:32+0300\n"
+"POT-Creation-Date: 2023-10-09 15:13+0000\n"
+"PO-Revision-Date: 2023-10-09 18:17+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: uk\n"
@@ -30,6 +30,10 @@ msgstr "Учасники"
 #: forms.py:13
 msgid "Judges"
 msgstr "Судді"
+
+#: forms.py:20
+msgid "inplace"
+msgstr "на екран"
 
 #: forms.py:20
 msgid "Results format:"
@@ -171,8 +175,7 @@ msgstr "Поточний користувач не є суддею цього е
 
 #: views.py:245
 msgid "Please wait while registration/draw stage will be finished."
-msgstr ""
-"Будь ласка, зачекайте, поки завершиться етап реєстрації/жеребкування."
+msgstr "Будь ласка, зачекайте, поки завершиться етап реєстрації/жеребкування."
 
 #: views.py:281
 msgid "This judge already submitted results."

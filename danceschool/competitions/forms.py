@@ -17,7 +17,7 @@ class SkatingCalculatorForm(forms.Form):
     '''
     Main Skating Calculator Form
     '''
-    outType = forms.ChoiceField(widget=forms.RadioSelect, choices=[('1', 'inplace'), ('2', 'csv')], label=_('Results format:'))
+    outType = forms.ChoiceField(widget=forms.RadioSelect, choices=[('1', _('inplace')), ('2', 'csv')], label=_('Results format:'))
 
     def __init__(self, *args, **kwargs):
         self.judges = kwargs.pop('judges', 0)
