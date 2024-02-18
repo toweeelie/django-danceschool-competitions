@@ -3,6 +3,8 @@ from django.apps import apps
 
 
 urlpatterns = [
+    # For better authentication
+    path('accounts/', include('allauth.urls')),
     # The URLS associated with all built-in core functionality.
     #path('', include('danceschool.core.urls')),
 ]
