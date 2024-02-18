@@ -1,0 +1,2 @@
+FROM danceschool_web:orig
+COPY school/ /data/web/school/
