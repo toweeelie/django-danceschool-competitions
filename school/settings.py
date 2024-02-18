@@ -10,22 +10,47 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
-from pathlib import Path
+import os
+from os import environ
+from huey import RedisHuey
+from redis import ConnectionPool
+def boolify(s):
+    ''' translate environment variables to booleans '''
+    if isinstance(s,bool) or isinstance(s,int):
+        return s
+    s = s.strip().lower()
+    return int(s) if s.isdigit() else s == 'true'
+
+
+def get_secret(secret_name):
+    ''' For Docker Swarms, the secret key and Postgres info are kept in secrets, not in the environment. '''
+    try:
+        with open('/run/secrets/{0}'.format(secret_name), 'r') as secret_file:
+            return secret_file.read().rstrip('\n')
+    except IOError:
+        return None
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'i23(voo_b&%a#=oa^ot&65y*%l^15r13^tav069s=edz@z8@y+'
+SECRET_KEY = get_secret('django_secret_key') or environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = boolify(environ.get('DEBUG', False))
 
-ALLOWED_HOSTS = []
+# SECURITY WARNING: ALLOWED_HOSTS must be updated for production
+# to permit public access of the site.  Because *.herokuapp.com
+# is currently allowed, this project is insecure by default.
+# It is STRONGLY recommended that you update this to limit
+# to your own domain before making your site public.
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver', environ.get('ALLOWED_HOST') or '']
 
 
 # Application definition
@@ -50,6 +75,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # This middleware is used by WhiteNoise for static file handling
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -90,6 +117,9 @@ DATABASES = {
     }
 }
 
+# Change 'default' database configuration with $DATABASE_URL or the Docker secret.
+DB_URL = get_secret('postgres_url') or environ.get('DATABASE_URL')
+DATABASES['default'].update(dj_database_url.config(default=DB_URL,conn_max_age=500))
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -122,7 +152,7 @@ AUTHENTICATION_BACKENDS = (
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = environ.get('TIME_ZONE','Europe/Kyiv')
 
 USE_I18N = True
 
@@ -131,7 +161,29 @@ USE_L10N = True
 USE_TZ = True
 
 
+# Huey setup (use Redis by default)
+pool = ConnectionPool.from_url(environ.get('REDIS_URL'))
+HUEY = RedisHuey('danceschool', connection_pool=pool)
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'staticfiles')
+# Simplified static file serving.
+# https://warehouse.python.org/project/whitenoise/
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Use Redis for caching
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": environ.get('REDIS_URL'),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
