@@ -119,7 +119,7 @@ DATABASES = {
 
 # Change 'default' database configuration with $DATABASE_URL or the Docker secret.
 DB_URL = get_secret('postgres_url') or environ.get('DATABASE_URL')
-DATABASES['default'].update(dj_database_url.config(default=DB_URL,conn_max_age=500))
+#DATABASES['default'].update(dj_database_url.config(default=DB_URL,conn_max_age=500))
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
