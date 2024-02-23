@@ -88,14 +88,13 @@ class Registration(models.Model):
     comp_checked_in = models.BooleanField(
         _('Checked In'), default=False, blank=False
     )
-    finalist = models.BooleanField(
-        _('Finalist'), default=False, blank=False
-    )
     final_partner = models.ForeignKey(
         'self',verbose_name=_('Partner in final'), null=True, blank=True, on_delete=models.CASCADE,
     )
     final_heat_order = models.IntegerField(default=0)
-
+    finalist = models.BooleanField(
+        _('Finalist'), default=False, blank=False
+    )
     def __str__(self):
         return f'{self.comp_num} {self.competitor.fullName}'
 

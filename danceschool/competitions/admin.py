@@ -33,6 +33,25 @@ class RegistrationInline(admin.TabularInline):
 
         return queryset
     
+    def get_formset(self,request,obj=None,**kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        try:
+            # Get the parent Competition object from the request's URL parameters
+            competition_id = request.resolver_match.kwargs.get('object_id')
+            competition = Competition.objects.get(pk=competition_id)
+        except ObjectDoesNotExist:
+            competition = None
+
+        if competition and competition.stage in ['d','f']:
+            formset.form.base_fields['comp_role'].widget = forms.HiddenInput()
+            formset.form.base_fields['comp_checked_in'].widget = forms.HiddenInput()
+            formset.form.base_fields['finalist'].widget = forms.HiddenInput()
+        else:
+            formset.form.base_fields['final_partner'].widget = forms.HiddenInput()
+            formset.form.base_fields['final_heat_order'].widget = forms.HiddenInput()
+
+        return formset
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'final_partner':
             try:
@@ -86,12 +105,21 @@ class JudgeInline(admin.TabularInline):
     model = Judge
     extra = 0
     formset = JudgeInlineFormset
-
+    classes = ('collapse', )
 
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
     list_display = ('title','results_visible')
     inlines = [JudgeInline,RegistrationInline]
+    fieldsets = (
+        (None,{
+            'fields':('title','stage'),
+        }),
+        (_('Additional settings'),{
+            'classes': ('collapse', ),
+            'fields':('comp_roles','finalists_number','pair_finalists','results_visible',),
+        })
+    )
 
 
 @admin.register(PrelimsResult)
