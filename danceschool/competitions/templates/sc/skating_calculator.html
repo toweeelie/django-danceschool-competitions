@@ -1,3 +1,6 @@
+{% extends "admin/base.html" %}
+{% block breadcrumbs %}
+{% endblock %}
 {% load i18n %}
 
 {% block content %}
@@ -21,7 +24,7 @@
       }
     </style>
     <table class="table table-responsive" style="border-collapse: collapse; border-spacing: 0;">
-    <tr style="position:sticky;left:0px;"><td style="padding: 0px; background-color:#fbead6;">{% trans 'Competitors\Judges' %}</td>
+    <tr style="position:sticky;left:0px;"><td style="padding: 0px;">{% trans 'Competitors\Judges' %}</td>
     {% for field in form %}
       {% if field.name != 'outType' %}
         {% if field.name|first in 'j' %}
