@@ -75,6 +75,9 @@ class Registration(models.Model):
     '''
     Competitor registration record
     '''
+    comp_checked_in = models.BooleanField(
+        _('Checked In'), default=False, blank=False
+    )
     comp = models.ForeignKey(
         Competition, on_delete=models.CASCADE
     )
@@ -84,9 +87,6 @@ class Registration(models.Model):
     )
     comp_role = models.ForeignKey(
         DanceRole, verbose_name=_('Dance Role'), on_delete=models.CASCADE,
-    )
-    comp_checked_in = models.BooleanField(
-        _('Checked In'), default=False, blank=False
     )
     final_partner = models.ForeignKey(
         'self',verbose_name=_('Partner in final'), null=True, blank=True, on_delete=models.CASCADE,
