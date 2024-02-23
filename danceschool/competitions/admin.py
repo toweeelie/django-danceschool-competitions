@@ -43,6 +43,8 @@ class RegistrationInline(admin.TabularInline):
             competition = None
 
         if competition and competition.stage in ['d','f']:
+            formset.form.base_fields['comp_num'].widget = forms.HiddenInput()
+            formset.form.base_fields['competitor'].widget = forms.HiddenInput()
             formset.form.base_fields['comp_role'].widget = forms.HiddenInput()
             formset.form.base_fields['comp_checked_in'].widget = forms.HiddenInput()
             formset.form.base_fields['finalist'].widget = forms.HiddenInput()
