@@ -75,11 +75,11 @@ class Registration(models.Model):
     '''
     Competitor registration record
     '''
-    comp_checked_in = models.BooleanField(
-        _('Checked In'), default=False, blank=False
-    )
     comp = models.ForeignKey(
         Competition, on_delete=models.CASCADE
+    )
+    comp_checked_in = models.BooleanField(
+        _('Checked In'), default=False, blank=False
     )
     comp_num = models.IntegerField()
     competitor = models.ForeignKey(
