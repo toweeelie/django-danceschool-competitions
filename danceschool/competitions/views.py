@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def calculate_skating(judges_list,data_dict):
+def calculate_skating(judges_list,data_dict,starting_place=1):
     sctable = []
 
     judges = len(judges_list)
@@ -88,12 +88,12 @@ def calculate_skating(judges_list,data_dict):
                         c2c = c2c_points_ordered.index(c_row[j_idx])+1
                         c2c_data_dict[c_idx].append(c2c)
                 # run whole procedure on reduced table
-                c2c_sctable = calculate_skating(judges_list, c2c_data_dict)
+                c2c_sctable = calculate_skating(judges_list, c2c_data_dict, place)
                 # copy places from reduced table to main table
                 for row in c2c_sctable[1:]:
                     cidx = row[0]
                     cplace = row[-1]
-                    sctable[cidx+1].append(place+int(cplace)-1)
+                    sctable[cidx+1].append(cplace)
             else:
                 # share several places among rest of equal cases
                 shared_places = '/'.join(map(str,range(place,place+len(sub_sctable))))
@@ -104,7 +104,7 @@ def calculate_skating(judges_list,data_dict):
 
     # calculate places
     majority = int(judges/2)+1
-    skating_rules(0, 1, { i:l for i,l in enumerate(sctable[1:]) })
+    skating_rules(0, starting_place, { i:l for i,l in enumerate(sctable[1:]) })
 
     # clean zeroes from the table
     for ridx, row in enumerate(sctable):

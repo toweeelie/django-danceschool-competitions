@@ -467,6 +467,17 @@ class SkatingCalculatorTest(TestCase):
                     'c4':[4,4,4],
                 },
                 'expected_results':['1/2/3','1/2/3','1/2/3',4],
+            },
+            {
+                'judges_list':['j1','j2','j3','j4','j5'],
+                'data_dict':{
+                    'c1':[3,1,1,2,3],
+                    'c2':[5,3,2,1,2],
+                    'c3':[1,2,4,3,4],
+                    'c4':[2,4,3,4,1],
+                    'c5':[4,5,5,5,5],
+                },
+                'expected_results':[1,2,3,4,5],
             }
         ]
         
