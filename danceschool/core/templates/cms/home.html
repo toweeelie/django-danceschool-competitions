@@ -1,3 +1,15 @@
 {% extends "admin/base.html" %}
 {% block breadcrumbs %}
+{% load i18n %}
+<div class="breadcrumbs">
+    <a href="{% url 'competitions' %}">{% trans 'Home' %}</a>
+    {% if user.is_authenticated %}
+        {% if user.is_superuser %}
+            <a href="{% url 'admin:index' %}">{% trans 'Admin' %}</a>
+        {% endif %}
+        <a href="{% url 'account_logout' %}">{% trans 'Logout' %}</a>
+    {% else %}
+        <a href="{% url 'account_login' %}">{% trans 'Login' %}</a>
+    {% endif %}
+</div>
 {% endblock %}
