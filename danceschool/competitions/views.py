@@ -93,7 +93,7 @@ def calculate_skating(judges_list,data_dict):
                 for row in c2c_sctable[1:]:
                     cidx = row[0]
                     cplace = row[-1]
-                    sctable[cidx+1].append(cplace)
+                    sctable[cidx+1].append(place+cplace-1)
             else:
                 # share several places among rest of equal cases
                 shared_places = '/'.join(map(str,range(place,place+len(sub_sctable))))
