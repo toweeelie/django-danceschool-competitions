@@ -4,7 +4,7 @@
 <div class="breadcrumbs">
     <a href="{% url 'competitions' %}">{% trans 'Home' %}</a>
     {% if user.is_authenticated %}
-        {% if user.is_superuser %}
+        {% if user.is_staff %}
             <a href="{% url 'admin:index' %}">{% trans 'Admin' %}</a>
         {% endif %}
         <a href="{% url 'account_logout' %}">{% trans 'Logout' %}</a>
