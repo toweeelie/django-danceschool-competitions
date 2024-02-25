@@ -93,7 +93,12 @@ def calculate_skating(judges_list,data_dict,starting_place=1):
                 for row in c2c_sctable[1:]:
                     cidx = row[0]
                     cplace = row[-1]
-                    sctable[cidx+1].append(cplace)
+                    if isinstance(cplace,str):
+                        sctable[cidx+1].append(cplace)
+                    else:
+                        sctable[cidx+1].append(f'{cplace}({cplace-place+1})')
+                        for j_idx in range(1,judges+1):
+                            sctable[cidx+1][j_idx] = f'{sctable[cidx+1][j_idx]}({row[j_idx]})'
             else:
                 # share several places among rest of equal cases
                 shared_places = '/'.join(map(str,range(place,place+len(sub_sctable))))
@@ -482,7 +487,7 @@ def finals_results(request, comp_id):
 
         sctable = calculate_skating(judges_list,tmp_dict) 
         tmp_dict = {sc_line[0]:sc_line[1:] for sc_line in sctable[1:]}
-        tmp_dict = dict(sorted(tmp_dict.items(), key=lambda item: item[1][-1]))
+        tmp_dict = dict(sorted(tmp_dict.items(), key=lambda item: str(item[1][-1])))
         
         results_dict = {
             'judges':sctable[0][1:],

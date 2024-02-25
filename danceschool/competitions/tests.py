@@ -456,7 +456,7 @@ class SkatingCalculatorTest(TestCase):
                     'Hristian & Anna': [ 3,1,3,2,4 ],
                     'Niki & Iryna': [ 2,3,1,1,2 ],
                 },
-                'expected_results':[4,6,7,1,5,3,2],
+                'expected_results':[4,6,7,'1(1)',5,3,'2(2)'],
             },
             {
                 'judges_list':['j1','j2','j3'],
@@ -477,7 +477,7 @@ class SkatingCalculatorTest(TestCase):
                     'c4':[2,4,3,4,1],
                     'c5':[4,5,5,5,5],
                 },
-                'expected_results':[1,2,3,4,5],
+                'expected_results':[1,2,'3(1)','4(2)',5],
             }
         ]
         

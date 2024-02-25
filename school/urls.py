@@ -16,9 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.conf.urls import include, url
+from danceschool.competitions.views import CompetitionListViev
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^', include('danceschool.urls')),
     url(r'^accounts/', include('allauth.urls')),
+    path('', CompetitionListViev.as_view()),
+    path('accounts/profile/', CompetitionListViev.as_view()),
 ]
