@@ -2,10 +2,13 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib import admin
 from django import forms
 from django.urls import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest,HttpResponseRedirect
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.contrib.auth.models import AnonymousUser
+import unicodecsv as csv
 from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
+from .views import register_competitor
+from django.db import transaction
 
 class RegistrationInline(admin.TabularInline):
     model = Registration
@@ -110,8 +113,30 @@ class JudgeInline(admin.TabularInline):
     formset = JudgeInlineFormset
     classes = ('collapse', )
 
+class CompetitionAdminForm(forms.ModelForm):
+    csv_file = forms.FileField(required=False,label=_('Import registrations from CSV file'),help_text=_('CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s'))
+    class Meta:
+        model = Competition
+        fields = '__all__'
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        regs_file = self.cleaned_data.get('csv_file')
+        if commit:
+            instance.save()
+        if regs_file:
+            request = HttpRequest()
+            request.method = 'POST'
+            request.user = AnonymousUser()
+            for row in csv.DictReader(regs_file):
+                request.POST = row
+                with transaction.atomic():
+                    register_competitor(request,self.instance.id)
+        return instance
+    
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
+    form = CompetitionAdminForm
     list_display = ('title','results_visible')
     inlines = [JudgeInline,RegistrationInline]
     fieldsets = (
@@ -120,7 +145,7 @@ class CompetitionAdmin(admin.ModelAdmin):
         }),
         (_('Additional settings'),{
             'classes': ('collapse', ),
-            'fields':('comp_roles','finalists_number','pair_finalists','results_visible',),
+            'fields':('comp_roles','finalists_number','pair_finalists','results_visible','csv_file',),
         })
     )
 
