@@ -114,17 +114,20 @@ class JudgeInline(admin.TabularInline):
     classes = ('collapse', )
 
 class CompetitionAdminForm(forms.ModelForm):
-    csv_file = forms.FileField(required=False,label=_('Import registrations from CSV file'),help_text=_('CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s'))
+    csv_file = forms.FileField(required=False,label=_('Import registrations from CSV file'),help_text=_('This field works only with existing competitions. CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s.'))
     class Meta:
         model = Competition
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields['csv_file'].disabled = True
+
     def save(self, commit=True):
-        instance = super().save(commit=False)
+        instance = super().save(commit)
         regs_file = self.cleaned_data.get('csv_file')
-        if commit:
-            instance.save()
-        if regs_file:
+        if regs_file and self.instance.id:
             request = HttpRequest()
             request.method = 'POST'
             request.user = AnonymousUser()
