@@ -13,6 +13,7 @@ from django.db import transaction
 class RegistrationInline(admin.TabularInline):
     model = Registration
     extra = 0
+    ordering = ['comp_role','comp_num']
 
     def get_queryset(self, request):
         try:
@@ -76,6 +77,11 @@ class RegistrationInline(admin.TabularInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+class JudgeInlineForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['profile'].label_from_instance = lambda obj: "%s" % obj.get_full_name()
+
 class JudgeInlineFormset(forms.models.BaseInlineFormSet):
     def clean(self):
         super().clean()
@@ -111,6 +117,7 @@ class JudgeInline(admin.TabularInline):
     model = Judge
     extra = 0
     formset = JudgeInlineFormset
+    form = JudgeInlineForm
     classes = ('collapse', )
 
 class CompetitionAdminForm(forms.ModelForm):
