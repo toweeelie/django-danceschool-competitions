@@ -246,9 +246,12 @@ def submit_results(request, comp_id):
         error_message = _("Current user is not a judge for this competition stage.")
         return render(request, 'sc/comp_judge.html', {'comp': comp, 'error_message':error_message})
 
-    if comp.stage in ['r','d']:
-        error_message = _("Please wait while registration/draw stage will be finished.")
+    if comp.stage == 'r':
+        error_message = _("Please wait while registration stage will be finished.")
         return render(request, 'sc/comp_judge.html', {'comp': comp, 'error_message':error_message})
+    
+    if comp.stage == 'd':
+        return redirect('prelims_results', comp_id=comp_id)
     
     if comp.stage == 'p':
         registrations = Registration.objects.filter(comp=comp,comp_role=judge.prelims_role,comp_checked_in=True).order_by('comp_num') 
