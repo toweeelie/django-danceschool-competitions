@@ -184,6 +184,15 @@ class CompetitionListViev(ListView):
     template_name = 'sc/comp_list.html'
     context_object_name = 'competitions'
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search_query = self.request.GET.get('q')
+
+        if search_query:
+            queryset = queryset.filter(title__icontains=search_query)
+
+        return queryset
+
 
 def redirect_user(request, comp_id):
     comp = Competition.objects.get(id=comp_id)

@@ -9,4 +9,8 @@
         <li>{% trans 'No competitions available' %}</li>
     {% endfor %}
 </ul>
+<form method="get">
+    <input type="text" name="q">
+    <button type="submit">{% trans 'Search' %}</button>
+</form>
 {% endblock %}

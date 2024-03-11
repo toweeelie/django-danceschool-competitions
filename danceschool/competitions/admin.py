@@ -148,6 +148,7 @@ class CompetitionAdminForm(forms.ModelForm):
 class CompetitionAdmin(admin.ModelAdmin):
     form = CompetitionAdminForm
     list_display = ('title','results_visible')
+    search_fields = ('title',)
     inlines = [JudgeInline,RegistrationInline]
     fieldsets = (
         (None,{
@@ -163,11 +164,13 @@ class CompetitionAdmin(admin.ModelAdmin):
 @admin.register(PrelimsResult)
 class PrelimsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
+    search_fields = ('judge', 'comp_reg')
     list_filter = ('judge',)
 
 
 @admin.register(FinalsResult)
 class FinalsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
+    search_fields = ('judge', 'comp_reg')
     list_filter = ('judge',)
 

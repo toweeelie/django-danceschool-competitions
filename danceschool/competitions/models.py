@@ -34,8 +34,11 @@ class Competition(models.Model):
         _('Publish results'), default=False, blank=False
     )
 
+    def prelims_requirements(self):
+        return {'Y':self.finalists_number - 1, 'Mb': 2}
+
     def __str__(self):
-            return self.title
+        return self.title
 
 
 class Judge(models.Model):
