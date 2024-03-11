@@ -164,13 +164,13 @@ class CompetitionAdmin(admin.ModelAdmin):
 @admin.register(PrelimsResult)
 class PrelimsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
-    search_fields = ('judge', 'comp_reg')
+    search_fields = ('judge__profile__first_name', 'judge__profile__last_name', 'judge__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
     list_filter = ('judge',)
 
 
 @admin.register(FinalsResult)
 class FinalsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
-    search_fields = ('judge', 'comp_reg')
+    search_fields = ('judge__profile__first_name', 'judge__profile__last_name', 'judge__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
     list_filter = ('judge',)
 
