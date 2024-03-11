@@ -34,6 +34,9 @@ class Competition(models.Model):
         _('Publish results'), default=False, blank=False
     )
 
+    class Meta:
+        ordering = ['pk'] 
+
     def prelims_requirements(self):
         return {'Y':self.finalists_number - 1, 'Mb': 2}
 
