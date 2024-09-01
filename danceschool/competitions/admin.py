@@ -5,13 +5,32 @@ from django.urls import reverse
 from django.http import HttpRequest,HttpResponseRedirect
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.admin.widgets import RelatedFieldWidgetWrapper
 import unicodecsv as csv
 from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
 from .views import register_competitor
 from django.db import transaction
 
+from dal import autocomplete
+
+class RegistrationInlineForm(forms.ModelForm):
+    class Meta:
+        model = Registration
+        fields = '__all__'
+        widgets = {
+            'competitor': autocomplete.ModelSelect2(
+                url='autocompleteCustomer',
+                attrs={
+                    'data-placeholder': _('Enter competitor name'),
+                    'data-minimum-input-length': 1,
+                    'data-max-results': 10,
+                },
+            )
+        }
+
 class RegistrationInline(admin.TabularInline):
     model = Registration
+    form = RegistrationInlineForm
     extra = 0
     ordering = ['comp_role','comp_num']
 
@@ -78,6 +97,19 @@ class RegistrationInline(admin.TabularInline):
 
 
 class JudgeInlineForm(forms.ModelForm):
+    class Meta:
+        model = Judge
+        fields = '__all__'
+        widgets = {
+            'profile': autocomplete.ModelSelect2(
+                url='autocompleteUser',
+                attrs={
+                    'data-placeholder': _('Enter judge name'),
+                    'data-minimum-input-length': 1,
+                    'data-max-results': 10,
+                },
+            )
+        }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['profile'].label_from_instance = lambda obj: "%s" % obj.get_full_name()
@@ -119,6 +151,7 @@ class JudgeInline(admin.TabularInline):
     formset = JudgeInlineFormset
     form = JudgeInlineForm
     classes = ('collapse', )
+
 
 class CompetitionAdminForm(forms.ModelForm):
     csv_file = forms.FileField(required=False,label=_('Import registrations from CSV file'),help_text=_('This field works only with existing competitions. CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s.'))

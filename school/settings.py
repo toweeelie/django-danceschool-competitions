@@ -41,6 +41,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.facebook',  
 
+    # Autocomplete overrides some admin features so it goes here (above admin)
+    'dal',
+    'dal_select2',
+    'django_addanother',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
