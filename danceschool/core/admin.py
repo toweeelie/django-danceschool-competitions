@@ -5,6 +5,9 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.core.exceptions import ObjectDoesNotExist
 
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
+
 from .models import DanceRole,Customer
 
 @admin.register(DanceRole)
@@ -24,3 +27,20 @@ class CustomerAdmin(admin.ModelAdmin):
         if not request.user.is_superuser:
             return {}
         return super().get_model_perms(request)
+
+
+class CustomUserAdmin(DefaultUserAdmin):
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Override the get_form method to disable the 'is_superuser' field if the current admin user is not a superuser.
+        """
+        form = super().get_form(request, obj, **kwargs)
+
+        # Check if the current user (request.user) is not a superuser
+        if not request.user.is_superuser:
+            form.base_fields['is_superuser'].disabled = True  # Disable the 'is_superuser' field
+        
+        return form
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
