@@ -1,6 +1,6 @@
 from django.views.generic import FormView,ListView
 from django.urls import reverse
-from django.http import HttpResponseRedirect,HttpResponse
+from django.http import HttpResponseRedirect,HttpResponse,Http404
 from django.utils.translation import ugettext_lazy as _
 from django.db import IntegrityError
 from danceschool.core.models import Customer
@@ -462,6 +462,7 @@ def prelims_results(request, comp_id):
 
     return render(request, 'sc/comp_results.html', context)
 
+
 def finals_results(request, comp_id):
     comp = get_object_or_404(Competition, pk=comp_id)
     judges = Judge.objects.filter(comp=comp,finals=True).order_by('profile').all()
@@ -509,3 +510,21 @@ def finals_results(request, comp_id):
 
     return render(request, 'sc/comp_results.html', context)
     
+
+@login_required
+def registration_checkin(request, reg_id):
+    try:
+        reg = Registration.objects.get(id=reg_id)
+    except Registration.DoesNotExist:
+        raise Http404(_("Registration not found."))
+
+    if request.user not in reg.comp.staff.all():
+        return HttpResponse(_("You're not authorized to manage this competition."), status=403)
+    
+    if reg.comp_checked_in:
+        return HttpResponse(_("This competitor already checked-in."), status=400)
+    
+    reg.comp_checked_in = True
+    reg.save()
+
+    return render(request, 'sc/print_checkin.html', {'comp_num':reg.comp_num,'full_name':reg.competitor.fullName})
