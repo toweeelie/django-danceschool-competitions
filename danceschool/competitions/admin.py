@@ -158,11 +158,22 @@ class CompetitionAdminForm(forms.ModelForm):
     class Meta:
         model = Competition
         fields = '__all__'
+        widgets = {
+            'staff': autocomplete.ModelSelect2Multiple(
+                url='autocompleteStaff',
+                attrs={
+                    'data-placeholder': _('Enter registered user name'),
+                    'data-minimum-input-length': 1,
+                    'data-max-results': 10,
+                },
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields['csv_file'].disabled = True
+        self.fields['staff'].label_from_instance = lambda obj: "%s" % obj.get_full_name()
 
     def save(self, commit=True):
         instance = super().save(commit)
@@ -189,9 +200,35 @@ class CompetitionAdmin(admin.ModelAdmin):
         }),
         (_('Additional settings'),{
             'classes': ('collapse', ),
-            'fields':('comp_roles','finalists_number','pair_finalists','results_visible','csv_file',),
+            'fields':('staff','comp_roles','finalists_number','pair_finalists','results_visible','csv_file',),
         })
     )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        if request.user.is_superuser:
+            return qs
+        else:
+            return qs.filter(staff=request.user)
+
+    def has_change_permission(self, request, obj=None):
+        # Allow editing if the user is a superuser
+        if request.user.is_superuser:
+            return True
+
+        # If no specific object is provided, default to checking if they can view the list
+        if obj is None:
+            return True
+
+        # Allow editing if the user is the owner or a helper
+        return request.user in obj.staff.all()
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if not obj:  # Only set initial data when creating a new object
+            form.base_fields['staff'].initial = [request.user.id]
+        return form
 
 
 @admin.register(PrelimsResult)
@@ -200,6 +237,25 @@ class PrelimsResultAdmin(admin.ModelAdmin):
     search_fields = ('judge__profile__first_name', 'judge__profile__last_name', 'judge__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
     list_filter = ('judge',)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        if request.user.is_superuser:
+            return qs
+        else:
+            return qs.filter(comp_reg__comp__staff=request.user)
+
+    def has_change_permission(self, request, obj=None):
+        # Allow editing if the user is a superuser
+        if request.user.is_superuser:
+            return True
+
+        # If no specific object is provided, default to checking if they can view the list
+        if obj is None:
+            return True
+
+        # Allow editing if the user is the owner or a helper
+        return request.user in obj.staff.all()
 
 @admin.register(FinalsResult)
 class FinalsResultAdmin(admin.ModelAdmin):
@@ -207,3 +263,23 @@ class FinalsResultAdmin(admin.ModelAdmin):
     search_fields = ('judge__profile__first_name', 'judge__profile__last_name', 'judge__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
     list_filter = ('judge',)
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        if request.user.is_superuser:
+            return qs
+        else:
+            return qs.filter(comp_reg__comp__staff=request.user)
+
+    def has_change_permission(self, request, obj=None):
+        # Allow editing if the user is a superuser
+        if request.user.is_superuser:
+            return True
+
+        # If no specific object is provided, default to checking if they can view the list
+        if obj is None:
+            return True
+
+        # Allow editing if the user is the owner or a helper
+        return request.user in obj.staff.all()
+    

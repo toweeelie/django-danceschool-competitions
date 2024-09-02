@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib import admin
 from .views import SkatingCalculatorView,CompetitionListViev,redirect_user,prelims_results,finals_results,register_competitor,submit_results
-from .autocomplete_light_registry import UserAutoComplete,CustomerAutoComplete
+from .autocomplete_light_registry import UserAutoComplete,CustomerAutoComplete,StaffAutoComplete
 
 admin.autodiscover()
 
@@ -16,5 +16,6 @@ urlpatterns = [
     path('<int:comp_id>/finals/', finals_results, name='finals_results'),
 
     path('autocomplete/user', UserAutoComplete.as_view(), name='autocompleteUser'),
+    path('autocomplete/staff', StaffAutoComplete.as_view(), name='autocompleteStaff'),
     path('autocomplete/customer', CustomerAutoComplete.as_view(create_field='fullName'), name='autocompleteCustomer'),
 ]

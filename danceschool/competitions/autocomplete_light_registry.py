@@ -9,11 +9,27 @@ from dal import autocomplete
 class UserAutoComplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
-        # Filter out results for unauthenticated users.
-        # if not self.request.user.has_perm('core.can_autocomplete_users'):
-        #     return User.objects.none()
-
         qs = User.objects.all()
+
+        if self.q:
+            words = self.q.split(' ')
+            lastName = words.pop()
+            firstName = words.pop() if words else lastName
+
+            qs = qs.filter(
+                Q(first_name__istartswith=firstName) | Q(last_name__istartswith=lastName) |
+                Q(email__istartswith=self.q)
+            )
+
+        return qs
+
+    def get_result_label(self, result):
+        return "%s" % result.get_full_name()
+
+class StaffAutoComplete(autocomplete.Select2QuerySetView):
+
+    def get_queryset(self):
+        qs = User.objects.filter(is_staff=True)
 
         if self.q:
             words = self.q.split(' ')
@@ -33,10 +49,6 @@ class UserAutoComplete(autocomplete.Select2QuerySetView):
 class CustomerAutoComplete(autocomplete.Select2QuerySetView):
 
     def get_queryset(self):
-        # Filter out results for unauthenticated users.
-        # if not self.request.user.has_perm('core.can_autocomplete_users'):
-        #     return User.objects.none()
-
         qs = Customer.objects.all()
 
         if self.q:

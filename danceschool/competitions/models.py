@@ -24,6 +24,9 @@ class Competition(models.Model):
     comp_roles = models.ManyToManyField(
         DanceRole, verbose_name=_('Dance roles'),
     )
+    staff = models.ManyToManyField(
+        User, verbose_name=_('Competition Staff'), blank=False
+    )
     finalists_number = models.IntegerField(
         verbose_name=_('Number of finalists per dance role'),
     )
