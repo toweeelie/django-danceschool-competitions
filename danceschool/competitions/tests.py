@@ -210,6 +210,7 @@ class CompetitionTest(TestCase):
                 'title': testing_jnj_data['name'],
                 'stage': 'r',
                 'comp_roles':(self.dance_roles['Leader'],self.dance_roles['Follower']),
+                'staff':[self.superuser['obj'].id,],
                 'finalists_number':len(testing_jnj_data['prelims']['finalists']['leaders']),
                 f'{judge_prefix}-TOTAL_FORMS': str(len(self.judge_profiles)),
                 f'{judge_prefix}-INITIAL_FORMS': '0',

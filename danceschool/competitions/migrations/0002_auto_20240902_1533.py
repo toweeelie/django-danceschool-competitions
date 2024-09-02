@@ -6,11 +6,15 @@ from django.db import migrations, models
 def add_user_to_existing_competitions(apps, schema_editor):
     Competition = apps.get_model('competitions', 'Competition')
     User = apps.get_model('auth', 'User')
-    user = User.objects.get(pk=1)
+    try:
+        user = User.objects.get(pk=1)
+    except User.DoesNotExist:
+        user = None
     
-    for competition in Competition.objects.all():
-        competition.staff.add(user)
-        competition.save()
+    if user:
+        for competition in Competition.objects.all():
+            competition.staff.add(user)
+            competition.save()
 
 class Migration(migrations.Migration):
 
