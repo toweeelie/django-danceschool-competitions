@@ -1,7 +1,8 @@
 import re
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group, Permission
+from django.contrib.contenttypes.models import ContentType
 from .models import Competition, Registration
 from danceschool.core.models import DanceRole
 
@@ -486,3 +487,135 @@ class SkatingCalculatorTest(TestCase):
             sctable = calculate_skating(case['judges_list'],case['data_dict'])  
             sctable_results = [row[-1] for row in sctable[1:]]
             self.assertSequenceEqual(case['expected_results'],sctable_results,tabulate(sctable))
+
+class StaffPermissionsTest(TestCase):
+    def setUp(self):
+        # Create superuser
+        self.superuser = { 
+            'username':'adminuser',
+            'password':'admpass666',
+            'email':'admin@example.com'
+        }
+        self.superuser['obj'] = User.objects.create_superuser(**self.superuser)
+        # Create dance roles
+        self.dance_roles = {}
+        for ridx,role in enumerate(('Follower','Leader',)):
+            role_ob = DanceRole.objects.create(
+                name = role,
+                pluralName = role + 's',
+                order = ridx
+            )
+            self.dance_roles[role] = role_ob.id
+        # Create Hosts group and add permissions to it
+        hosts_group = Group.objects.create(name='Hosts')
+        competition_content_type = ContentType.objects.get_for_model(Competition)
+        permissions = Permission.objects.filter(
+            content_type=competition_content_type,
+            codename__in=[
+                'add_competition',
+                'change_competition',
+                'view_competition',
+                'delete_competition'
+            ]
+        )
+        hosts_group.permissions.set(permissions)
+        # Create 2 staff users
+        self.staffusers = [
+            { 
+                'username':'staffuser1',
+                'password':'staff1pass666',
+                'email':'staff1@example.com'
+            },
+            { 
+                'username':'staffuser2',
+                'password':'staff2pass666',
+                'email':'staff2@example.com'
+            }
+        ]
+        for user in self.staffusers:
+            user['obj'] = User.objects.create_user(**user,is_staff=True)
+            user['obj'].groups.add(hosts_group)
+
+    def test_sp(self):
+        
+        # Default required data for competition
+        competition_data = {
+            'stage': 'r',
+            'comp_roles':(self.dance_roles['Leader'],self.dance_roles['Follower']),
+            'finalists_number':5,
+            'judge_set-TOTAL_FORMS': '0',
+            'judge_set-INITIAL_FORMS': '0',
+            'judge_set-MIN_NUM_FORMS': '0',
+            'judge_set-MAX_NUM_FORMS': '1000',
+            'registration_set-TOTAL_FORMS': '0',
+            'registration_set-INITIAL_FORMS': '0',
+            'registration_set-MIN_NUM_FORMS': '0',
+            'registration_set-MAX_NUM_FORMS': '1000',
+        }
+        comp_obj = {}
+        
+        # create competitions with different staff users
+        for user in self.staffusers:
+
+            # check if user is staff
+            self.assertTrue(user['obj'].is_staff)
+
+            # competition name and staff list
+            username = user['username']
+            competition_data['title'] = f'{username}_comp_name'
+            competition_data['staff']=[user['obj'].id,]
+
+            # login
+            self.client.login(username=user['username'], password=user['password'])
+            response = self.client.get('/admin/')
+            self.assertEqual(response.status_code, 200)
+
+            app_list = response.context_data.get('app_list', [])
+            self.assertNotEqual(app_list, [])
+
+            # create competition
+            response = self.client.get(reverse('admin:competitions_competition_add'))
+            self.assertEqual(response.status_code, 200) 
+            response = self.client.post(reverse('admin:competitions_competition_add'), competition_data)
+            self.assertEqual(response.status_code, 302)
+
+            # get competition object
+            comp = Competition.objects.filter(title=competition_data['title']).first()
+            comp_obj[user['obj']] = comp
+
+            # logout
+            self.client.logout()
+
+
+        # check competitions access for different users
+        for user in self.staffusers:
+
+            # login
+            self.client.login(username=user['username'], password=user['password'])
+            response = self.client.get('/admin/')
+            self.assertEqual(response.status_code, 200)
+
+            for u, comp in comp_obj.items():
+                response = self.client.get(
+                    reverse('admin:competitions_competition_change',args=(comp.id,)))
+                #with open('response_get.html','wt') as fl:
+                #    fl.write(response.content.decode())
+                self.assertEqual(response.status_code, 200 if u==user['obj'] else 302)
+
+            # logout
+            self.client.logout()
+
+        # check superuser access
+        self.client.login(username=self.superuser['username'], password=self.superuser['password'])
+        response = self.client.get('/admin/')
+        self.assertEqual(response.status_code, 200)
+
+        for comp in comp_obj.values():
+            response = self.client.get(
+                reverse('admin:competitions_competition_change',args=(comp.id,)))
+            #with open('response_get.html','wt') as fl:
+            #    fl.write(response.content.decode())
+            self.assertEqual(response.status_code, 200)
+
+        # logout
+        self.client.logout()
