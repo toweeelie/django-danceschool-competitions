@@ -108,6 +108,12 @@ class JudgeInlineForm(forms.ModelForm):
                     'data-minimum-input-length': 1,
                     'data-max-results': 10,
                 },
+            ),
+            'prelims_roles' : autocomplete.Select2Multiple (
+                attrs={
+                    'data-placeholder': _('Roles to judge (empty for not judging prelims)'),
+                    'data-max-results': 10,
+                },
             )
         }
     def __init__(self, *args, **kwargs):
@@ -123,9 +129,7 @@ class JudgeInlineFormset(forms.models.BaseInlineFormSet):
             finals_mj_count = 0
             for form in self.forms:
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    prelims = form.cleaned_data['prelims']
-                    if prelims:
-                        prelims_role = form.cleaned_data['prelims_role']
+                    for prelims_role in form.cleaned_data['prelims_roles']:
                         prelims_main_judge = form.cleaned_data['prelims_main_judge']
                     
                         if prelims_role not in prelims_mj_count:
@@ -167,6 +171,12 @@ class CompetitionAdminForm(forms.ModelForm):
                     'data-max-results': 10,
                 },
             ),
+            'comp_roles' : autocomplete.Select2Multiple (
+                attrs={
+                    'data-placeholder': _('Choose dance roles for competition'),
+                    'data-max-results': 10,
+                },
+            )
         }
 
     def __init__(self, *args, **kwargs):

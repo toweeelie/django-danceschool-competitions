@@ -228,8 +228,7 @@ class CompetitionTest(TestCase):
                 jattr = testing_jnj_data['judges'][j]['attr']
                 args = {
                     'profile':p,
-                    'prelims':True,
-                    'prelims_role':self.dance_roles['Follower'] if 'f' in jattr else self.dance_roles['Leader']
+                    'prelims_roles':[self.dance_roles['Follower'] if 'f' in jattr else self.dance_roles['Leader'],]
                 }
                 if 'spm' in jattr:
                     args['prelims_main_judge']= True

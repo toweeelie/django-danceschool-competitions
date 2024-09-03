@@ -5,6 +5,10 @@ from django.core.exceptions import ValidationError
 from danceschool.core.models import Customer
 from django.utils.html import format_html
 
+class SeparatorLabelWidget(forms.Widget):
+    def render(self, name, value, attrs=None, renderer=None):
+        return f'<div class="separator-label">{name}</div>'
+
 class InitSkatingCalculatorForm(forms.Form):
     '''
     Form for adding judjes into Skating Calculator
@@ -79,44 +83,49 @@ class PrelimsResultsForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
        
-        registrations = self.initial.get('registrations')
-        for registration in registrations:
-            if registration.comp_checked_in:
-                self.fields[f'competitor_{registration.comp_num}'] = forms.ChoiceField(
-                    label=f'{registration.comp_num} {registration.competitor.fullName}',
-                    choices=[
-                        ('no', ''),
-                        ('maybe', 'Mb'),
-                        ('yes', 'Y'),
-                    ],
-                    required=True,
-                )
-                self.fields[f'comment_{registration.comp_num}'] = forms.CharField(
-                    label='',
-                    max_length=100,
-                    widget=forms.TextInput(attrs={'placeholder':'Comments','style': 'width: 100%'}),
-                    required=False,
-                )
+        registration_dict = self.initial.get('registrations')
+        for dance_role,registrations in registration_dict.items():
+            self.fields[dance_role] = forms.CharField(label='', required=False, widget=SeparatorLabelWidget)
+            for registration in registrations:
+                if registration.comp_checked_in:
+                    self.fields[f'competitor_{registration.comp_num}'] = forms.ChoiceField(
+                        label=f'{registration.comp_num} {registration.competitor.fullName}',
+                        choices=[
+                            ('no', ''),
+                            ('maybe', 'Mb'),
+                            ('yes', 'Y'),
+                        ],
+                        required=True,
+                    )
+                    self.fields[f'comment_{registration.comp_num}'] = forms.CharField(
+                        label='',
+                        max_length=100,
+                        widget=forms.TextInput(attrs={'placeholder':'Comments','style': 'width: 100%'}),
+                        required=False,
+                    )
 
     def clean(self):
         cleaned_data = super().clean()
-        results = [res for field,res in cleaned_data.items() if field.startswith('competitor_')]
         comp = self.initial.get('comp')
+        registration_dict = self.initial.get('registrations')
+        for dance_role,registrations in registration_dict.items():
+            dance_role_list = [f'competitor_{r.comp_num}' for r in registrations]
+            results = [res for field,res in cleaned_data.items() if field in dance_role_list]
 
-        # check if enough Y and Mb were choosen
-        if results and comp:
-            Y_num = comp.finalists_number-1
-            count_y = results.count('yes')
-            count_mb = results.count('maybe')
-            if count_y != Y_num or count_mb != 2:
-                raise ValidationError(_(f"There should be {Y_num} 'Y' and 2 'Mb' marks"))
+            # check if enough Y and Mb were choosen
+            if results and comp:
+                Y_num = comp.finalists_number-1
+                count_y = results.count('yes')
+                count_mb = results.count('maybe')
+                if count_y != Y_num or count_mb != 2:
+                    raise ValidationError(_(f"There should be {Y_num} 'Y' and 2 'Mb' marks({dance_role})"))
             
         return cleaned_data
     
 
 class FinalsResultsForm(forms.Form):
     '''
-    Form for prelims results
+    Form for finals results
     '''
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

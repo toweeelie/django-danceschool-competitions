@@ -57,11 +57,8 @@ class Judge(models.Model):
     comp = models.ForeignKey(
         Competition, on_delete=models.CASCADE
     )
-    prelims = models.BooleanField(
-        _('Judging Prelims'), default=False
-    )
-    prelims_role = models.ForeignKey(
-        DanceRole, on_delete=models.CASCADE
+    prelims_roles = models.ManyToManyField(
+        DanceRole, blank=True
     )
     prelims_main_judge = models.BooleanField(
         _('Prelims Main Judge'), default=False

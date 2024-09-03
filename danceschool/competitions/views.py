@@ -251,7 +251,7 @@ def submit_results(request, comp_id):
     comp = Competition.objects.get(id=comp_id)
     judge = Judge.objects.filter(comp=comp,profile=request.user).first()
 
-    if not judge or (comp.stage in ['r','p'] and not judge.prelims) or (comp.stage in ['d','f'] and not judge.finals):
+    if not judge or (comp.stage in ['r','p'] and not judge.prelims_roles) or (comp.stage in ['d','f'] and not judge.finals):
         error_message = _("Current user is not a judge for this competition stage.")
         return render(request, 'sc/comp_judge.html', {'comp': comp, 'error_message':error_message})
 
@@ -262,36 +262,40 @@ def submit_results(request, comp_id):
     if comp.stage == 'd':
         return redirect('prelims_results', comp_id=comp_id)
     
+    registration_dict = {}    
     if comp.stage == 'p':
-        registrations = Registration.objects.filter(comp=comp,comp_role=judge.prelims_role,comp_checked_in=True).order_by('comp_num') 
+        for prelims_role in judge.prelims_roles.all():
+            registration_dict[prelims_role.pluralName] = Registration.objects.filter(comp=comp,comp_role=prelims_role,comp_checked_in=True).order_by('comp_num') 
+
         redirect_view = 'prelims_results' 
         if PrelimsResult.objects.filter(judge__profile=request.user,judge__comp=comp).exists():
             return redirect(redirect_view, comp_id=comp_id)
     else:
-        registrations = Registration.objects.filter(comp=comp,final_partner__isnull=False).order_by('final_heat_order')
+        registration_dict['pairs'] = Registration.objects.filter(comp=comp,final_partner__isnull=False).order_by('final_heat_order')
         redirect_view = 'finals_results'
         if FinalsResult.objects.filter(judge__profile=request.user,judge__comp=comp).exists():
             return redirect(redirect_view, comp_id=comp_id)
 
     if request.method == 'POST':
         if comp.stage == 'p':
-            form = PrelimsResultsForm(request.POST,initial={'comp': comp,'registrations':registrations})
+            form = PrelimsResultsForm(request.POST,initial={'comp': comp,'registrations':registration_dict})
         else:
-            form = FinalsResultsForm(request.POST,initial={'comp': comp,'registrations':registrations})
+            form = FinalsResultsForm(request.POST,initial={'comp': comp,'registrations':registration_dict['pairs']})
         if form.is_valid():
             try:
-                for reg in registrations:
-                    comp_res = form.cleaned_data[f'competitor_{reg.comp_num}']
-                    comp_comment = form.cleaned_data[f'comment_{reg.comp_num}']
-                    if comp.stage == 'p':
-                        
-                        res_obj = PrelimsResult.objects.create(judge = judge, comp_reg=reg, 
-                                                               result = comp_res, comment = comp_comment)
-                    else:
-                        
-                        res_obj = FinalsResult.objects.create(judge = judge, comp_reg=reg, 
-                                                              result = comp_res, comment = comp_comment)
-                    res_obj.save()
+                for registrations in registration_dict.values():
+                    for reg in registrations:
+                        comp_res = form.cleaned_data[f'competitor_{reg.comp_num}']
+                        comp_comment = form.cleaned_data[f'comment_{reg.comp_num}']
+                        if comp.stage == 'p':
+                            
+                            res_obj = PrelimsResult.objects.create(judge = judge, comp_reg=reg, 
+                                                                result = comp_res, comment = comp_comment)
+                        else:
+                            
+                            res_obj = FinalsResult.objects.create(judge = judge, comp_reg=reg, 
+                                                                result = comp_res, comment = comp_comment)
+                        res_obj.save()
                 return redirect(redirect_view, comp_id=comp_id)
             except IntegrityError:
                 # Handle the unique constraint violation
@@ -299,9 +303,9 @@ def submit_results(request, comp_id):
                 return render(request, 'sc/comp_judge.html', {'form': form, 'comp': comp, 'error_message':error_message})
     else:
         if comp.stage == 'p':
-            form = PrelimsResultsForm(initial={'comp': comp,'registrations':registrations})  
+            form = PrelimsResultsForm(initial={'comp': comp,'registrations':registration_dict})  
         else:
-            form = FinalsResultsForm(initial={'comp': comp,'registrations':registrations})
+            form = FinalsResultsForm(initial={'comp': comp,'registrations':registration_dict['pairs']})
 
     return render(request, 'sc/comp_judge.html', {'form': form, 'comp': comp})
 
@@ -313,7 +317,7 @@ def prelims_results(request, comp_id):
     main_judge_idx = {}
     all_results_ready = True
     for comp_role in comp.comp_roles.all():
-        judge_objs = Judge.objects.filter(comp=comp,prelims=True,prelims_role=comp_role).order_by('profile').all()
+        judge_objs = Judge.objects.filter(comp=comp,prelims_roles=comp_role).order_by('profile').all()
         role_judges = [j.profile for j in judge_objs]
         judges[comp_role] = role_judges
         main_judge_idx[comp_role] = [i for i,j in enumerate(judge_objs) if j.prelims_main_judge][0]
