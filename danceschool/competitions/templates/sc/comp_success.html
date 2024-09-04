@@ -1,7 +1,10 @@
 {% extends "cms/home.html" %}
 {% load i18n %}
+{% load segno_qr %}
 
 {% block content %}
 <p>{% trans 'Registration successfull' %}</p>
 <p>{% trans 'Your number is:' %} {{ comp_num }}</p>
+<p>{% trans 'Please scan this QR code at registration desk:' %}</p>
+<p>{% segno_qr checkin_url %}</p>
 {% endblock %}

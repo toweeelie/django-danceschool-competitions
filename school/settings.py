@@ -31,6 +31,10 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    
+    # qr codes generation
+    'segno_qr',
+
     'danceschool.core',
     'danceschool.competitions',
 

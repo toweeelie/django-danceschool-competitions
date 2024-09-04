@@ -1,2 +1,29 @@
-<p> {{ full_name }} </p>
-<p> {{ comp_num }} </p>
+<!-- templates/print_page.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Competition Number</title>
+    <style>
+        @page {
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        img {
+            width: {{ width_mm }}mm;
+            height: {{ height_mm }}mm;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body onload="window.print();">
+    <img src="{{ image_url }}" alt="Competition Number">
+</body>
+</html>

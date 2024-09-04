@@ -14,6 +14,8 @@ from .forms import CompetitionRegForm,PrelimsResultsForm,FinalsResultsForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
+from PIL import Image, ImageDraw, ImageFont
+
 import logging
 
 # Define logger for this file
@@ -235,7 +237,11 @@ def register_competitor(request, comp_id):
                 competitor.save()
             
                 prelims_reg_obj.save()
-                return render(request, 'sc/comp_success.html', {'comp_num':comp_num})
+
+                path = reverse('registration_checkin', args=[prelims_reg_obj.id])
+                full_url = request.build_absolute_uri(path)
+
+                return render(request, 'sc/comp_success.html', {'comp_num':comp_num,'checkin_url':full_url})
             except IntegrityError:
                 # Handle the unique constraint violation
                 error_message = _("This competitor is already registered to competition.")
@@ -515,6 +521,52 @@ def finals_results(request, comp_id):
     return render(request, 'sc/comp_results.html', context)
     
 
+def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
+    # Convert dimensions from millimeters to pixels (assuming 10 pixels per mm)
+    pixels_per_mm = 10
+    img_width = int(width_mm * pixels_per_mm)
+    img_height = int(height_mm * pixels_per_mm)
+    
+    # Create an image with a white background
+    image = Image.new('RGB', (img_width, img_height), color='white')
+    
+    # Initialize drawing context
+    draw = ImageDraw.Draw(image)
+
+    # Load a font (you can customize the font path and size)
+    try:
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        large_font = ImageFont.truetype(font_path, 900)
+        small_font = ImageFont.truetype(font_path, 40)
+    except IOError:
+        large_font = ImageFont.load_default()
+        small_font = ImageFont.load_default()
+
+    # Calculate positions for text
+    comp_num_bbox = draw.textbbox((0, 0), comp_num, font=large_font)
+    text_width, text_height = comp_num_bbox[2] - comp_num_bbox[0], comp_num_bbox[3] - comp_num_bbox[0]
+    comp_num_position = ((img_width - text_width) // 2, (img_height - text_height) // 2)
+    
+    full_name_bbox = draw.textbbox((0, 0), full_name, font=small_font)
+    name_width, name_height = full_name_bbox[2] - full_name_bbox[0], full_name_bbox[3] - full_name_bbox[0]
+    full_name_position = ((img_width - name_width) // 2, 20)
+
+    # Draw the comp_num in the center
+    draw.text(comp_num_position, comp_num, font=large_font, fill="black")
+    
+    # Draw the full_name at the top
+    draw.text(full_name_position, full_name, font=small_font, fill="black")
+
+    # Save the image to a BytesIO object
+    from io import BytesIO
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    # Return the image as an HTTP response
+    return HttpResponse(buffer, content_type='image/png')
+
+
 @login_required
 def registration_checkin(request, reg_id):
     try:
@@ -531,4 +583,11 @@ def registration_checkin(request, reg_id):
     reg.comp_checked_in = True
     reg.save()
 
-    return render(request, 'sc/print_checkin.html', {'comp_num':reg.comp_num,'full_name':reg.competitor.fullName})
+    width_mm = 100
+    height_mm = 100
+    context = {
+        'image_url': reverse('generate_comp_image', kwargs={'comp_num':reg.comp_num,'full_name':reg.competitor.fullName,'width_mm':width_mm,'height_mm':height_mm}),
+        'width_mm': width_mm,
+        'height_mm': height_mm,
+    }
+    return render(request, 'sc/print_checkin.html', context)
