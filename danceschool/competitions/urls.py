@@ -16,8 +16,6 @@ urlpatterns = [
     path('<int:comp_id>/finals/', finals_results, name='finals_results'),
 
     path('<int:reg_id>/checkin/', registration_checkin, name='registration_checkin'),
-    path('generate_comp_image/<str:comp_num>/<str:full_name>/<int:width_mm>/<int:height_mm>/', generate_comp_image, name='generate_comp_image'),
-
 
     path('autocomplete/user', UserAutoComplete.as_view(), name='autocompleteUser'),
     path('autocomplete/staff', StaffAutoComplete.as_view(), name='autocompleteStaff'),

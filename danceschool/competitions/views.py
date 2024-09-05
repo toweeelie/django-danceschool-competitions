@@ -522,8 +522,8 @@ def finals_results(request, comp_id):
     
 
 def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
-    # Convert dimensions from millimeters to pixels (assuming 10 pixels per mm)
-    pixels_per_mm = 10
+    # Convert dimensions from millimeters to pixels 
+    pixels_per_mm = 5
     img_width = int(width_mm * pixels_per_mm)
     img_height = int(height_mm * pixels_per_mm)
     
@@ -536,8 +536,8 @@ def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
     # Load a font (you can customize the font path and size)
     try:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        large_font = ImageFont.truetype(font_path, 900)
-        small_font = ImageFont.truetype(font_path, 40)
+        large_font = ImageFont.truetype(font_path, 0.900*img_height)
+        small_font = ImageFont.truetype(font_path, 0.040*img_height)
     except IOError:
         large_font = ImageFont.load_default()
         small_font = ImageFont.load_default()
@@ -585,9 +585,5 @@ def registration_checkin(request, reg_id):
 
     width_mm = 100
     height_mm = 100
-    context = {
-        'image_url': reverse('generate_comp_image', kwargs={'comp_num':reg.comp_num,'full_name':reg.competitor.fullName,'width_mm':width_mm,'height_mm':height_mm}),
-        'width_mm': width_mm,
-        'height_mm': height_mm,
-    }
-    return render(request, 'sc/print_checkin.html', context)
+
+    return generate_comp_image(request, reg.comp_num, reg.competitor.fullName, width_mm, height_mm)
