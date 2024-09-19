@@ -536,14 +536,14 @@ def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
     # Load a font (you can customize the font path and size)
     try:
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        large_font = ImageFont.truetype(font_path, 0.900*img_height)
-        small_font = ImageFont.truetype(font_path, 0.040*img_height)
+        large_font = ImageFont.truetype(font_path, int(0.900*img_height))
+        small_font = ImageFont.truetype(font_path, int(0.040*img_height))
     except IOError:
         large_font = ImageFont.load_default()
         small_font = ImageFont.load_default()
 
     # Calculate positions for text
-    comp_num_bbox = draw.textbbox((0, 0), comp_num, font=large_font)
+    comp_num_bbox = draw.textbbox((0, 0), str(comp_num), font=large_font)
     text_width, text_height = comp_num_bbox[2] - comp_num_bbox[0], comp_num_bbox[3] - comp_num_bbox[0]
     comp_num_position = ((img_width - text_width) // 2, (img_height - text_height) // 2)
     
@@ -552,7 +552,7 @@ def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
     full_name_position = ((img_width - name_width) // 2, 20)
 
     # Draw the comp_num in the center
-    draw.text(comp_num_position, comp_num, font=large_font, fill="black")
+    draw.text(comp_num_position, str(comp_num), font=large_font, fill="black")
     
     # Draw the full_name at the top
     draw.text(full_name_position, full_name, font=small_font, fill="black")
@@ -583,7 +583,7 @@ def registration_checkin(request, reg_id):
     reg.comp_checked_in = True
     reg.save()
 
-    width_mm = 100
+    width_mm = 150
     height_mm = 100
 
     return generate_comp_image(request, reg.comp_num, reg.competitor.fullName, width_mm, height_mm)

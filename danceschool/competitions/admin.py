@@ -1,17 +1,17 @@
-from django.utils.translation import ugettext_lazy as _
-from django.contrib import admin
 from django import forms
-from django.urls import reverse
-from django.http import HttpRequest,HttpResponseRedirect
+from django.contrib import admin
+from django.db import transaction
+from django.http import HttpRequest
+from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.admin.widgets import RelatedFieldWidgetWrapper
+
 import unicodecsv as csv
+from dal import autocomplete
+
 from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
 from .views import register_competitor
-from django.db import transaction
 
-from dal import autocomplete
 
 class RegistrationInlineForm(forms.ModelForm):
     class Meta:
@@ -27,6 +27,7 @@ class RegistrationInlineForm(forms.ModelForm):
                 },
             )
         }
+
 
 class RegistrationInline(admin.TabularInline):
     model = Registration
@@ -46,8 +47,11 @@ class RegistrationInline(admin.TabularInline):
         queryset = super().get_queryset(request)
 
         if competition and competition.stage == 'r':
-            cnt_list = [f'{role.pluralName}:{queryset.filter(comp=competition,comp_role=role).count()}' for role in competition.comp_roles.all()]
-            cnt_str = '/'.join(cnt_list)
+            cnt_list = [
+                f'{role.pluralName}:{queryset.filter(comp=competition,comp_role=role,comp_checked_in=True).count()}/{queryset.filter(comp=competition,comp_role=role).count()}' 
+                for role in competition.comp_roles.all()
+            ]
+            cnt_str = ';'.join(cnt_list)
             self.verbose_name_plural = f'{self.verbose_name_plural.split()[0]} ({cnt_str})' 
 
         if competition and competition.stage in ['d','f']:
@@ -120,6 +124,7 @@ class JudgeInlineForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['profile'].label_from_instance = lambda obj: "%s" % obj.get_full_name()
 
+
 class JudgeInlineFormset(forms.models.BaseInlineFormSet):
     def clean(self):
         super().clean()
@@ -158,7 +163,11 @@ class JudgeInline(admin.TabularInline):
 
 
 class CompetitionAdminForm(forms.ModelForm):
-    csv_file = forms.FileField(required=False,label=_('Import registrations from CSV file'),help_text=_('This field works only with existing competitions. CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s.'))
+    csv_file = forms.FileField(
+        required=False,
+        label=_('Import registrations from CSV file'),
+        help_text=_('This field works only with existing competitions. CSV file should contain the following header:"first_name,last_name,email,comp_role". Last column should contain dance role ID\'s.')
+    )
     class Meta:
         model = Competition
         fields = '__all__'
@@ -197,7 +206,8 @@ class CompetitionAdminForm(forms.ModelForm):
                 with transaction.atomic():
                     register_competitor(request,self.instance.id)
         return instance
-    
+
+
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
     form = CompetitionAdminForm
@@ -267,6 +277,7 @@ class PrelimsResultAdmin(admin.ModelAdmin):
         # Allow editing if the user is the owner or a helper
         return request.user in obj.staff.all()
 
+
 @admin.register(FinalsResult)
 class FinalsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
@@ -292,4 +303,3 @@ class FinalsResultAdmin(admin.ModelAdmin):
 
         # Allow editing if the user is the owner or a helper
         return request.user in obj.staff.all()
-    
