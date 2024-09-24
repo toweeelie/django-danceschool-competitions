@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib import admin
-from .views import SkatingCalculatorView,CompetitionListViev,redirect_user,prelims_results,finals_results,register_competitor,submit_results,registration_checkin,generate_comp_image
+from .views import SkatingCalculatorView,CompetitionListViev,redirect_user,prelims_results,finals_results,register_competitor,submit_results,registration_checkin
 from .autocomplete_light_registry import UserAutoComplete,CustomerAutoComplete,StaffAutoComplete
 
 admin.autodiscover()

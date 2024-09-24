@@ -14,7 +14,11 @@ from .forms import CompetitionRegForm,PrelimsResultsForm,FinalsResultsForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
-from PIL import Image, ImageDraw, ImageFont
+from reportlab.lib.pagesizes import mm
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO
 
 import logging
 
@@ -521,50 +525,46 @@ def finals_results(request, comp_id):
     return render(request, 'sc/comp_results.html', context)
     
 
-def generate_comp_image(request, comp_num, full_name, width_mm, height_mm):
-    # Convert dimensions from millimeters to pixels 
-    pixels_per_mm = 5
-    img_width = int(width_mm * pixels_per_mm)
-    img_height = int(height_mm * pixels_per_mm)
+def generate_comp_pdf(request, comp_num, full_name, width_mm, height_mm):
     
-    # Create an image with a white background
-    image = Image.new('RGB', (img_width, img_height), color='white')
-    
-    # Initialize drawing context
-    draw = ImageDraw.Draw(image)
+    page_width, page_height = width_mm * mm, height_mm * mm
 
-    # Load a font (you can customize the font path and size)
-    try:
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        large_font = ImageFont.truetype(font_path, int(0.900*img_height))
-        small_font = ImageFont.truetype(font_path, int(0.040*img_height))
-    except IOError:
-        large_font = ImageFont.load_default()
-        small_font = ImageFont.load_default()
-
-    # Calculate positions for text
-    comp_num_bbox = draw.textbbox((0, 0), str(comp_num), font=large_font)
-    text_width, text_height = comp_num_bbox[2] - comp_num_bbox[0], comp_num_bbox[3] - comp_num_bbox[0]
-    comp_num_position = ((img_width - text_width) // 2, (img_height - text_height) // 2)
-    
-    full_name_bbox = draw.textbbox((0, 0), full_name, font=small_font)
-    name_width, name_height = full_name_bbox[2] - full_name_bbox[0], full_name_bbox[3] - full_name_bbox[0]
-    full_name_position = ((img_width - name_width) // 2, 20)
-
-    # Draw the comp_num in the center
-    draw.text(comp_num_position, str(comp_num), font=large_font, fill="black")
-    
-    # Draw the full_name at the top
-    draw.text(full_name_position, full_name, font=small_font, fill="black")
-
-    # Save the image to a BytesIO object
-    from io import BytesIO
+    # Create a BytesIO buffer to hold the PDF data
     buffer = BytesIO()
-    image.save(buffer, format="PNG")
-    buffer.seek(0)
 
-    # Return the image as an HTTP response
-    return HttpResponse(buffer, content_type='image/png')
+    # Create a canvas with the specified page size
+    pdf_canvas = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    # Register the font that supports Cyrillic characters
+    font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' 
+    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_path))
+
+    # Set up font sizes based on page height
+    font_size_comp_num = 0.9 * page_height  # 90% of the page height
+    font_size_full_name = 0.04 * page_height  # 4% of the page height
+
+    # Draw the full_name at the top of the page (centered horizontally)
+    pdf_canvas.setFont('DejaVuSans-Bold', font_size_full_name)
+    full_name_width = pdf_canvas.stringWidth(full_name, 'DejaVuSans-Bold', font_size_full_name)
+    pdf_canvas.drawString((page_width - full_name_width) / 2, page_height - (font_size_full_name + 5), full_name)
+
+    # Draw the comp_num at the center of the page
+    pdf_canvas.setFont('DejaVuSans-Bold', font_size_comp_num)
+    comp_num_width = pdf_canvas.stringWidth(str(comp_num), 'DejaVuSans-Bold', font_size_comp_num)
+    pdf_canvas.drawString((page_width - comp_num_width) / 2, (page_height - font_size_comp_num), str(comp_num))
+
+    # Finalize the PDF
+    pdf_canvas.showPage()
+    pdf_canvas.save()
+
+    # Get the PDF data from the buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    # Return the PDF as a response
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="comp_num.pdf"'
+    return response
 
 
 @login_required
@@ -586,4 +586,4 @@ def registration_checkin(request, reg_id):
     width_mm = 150
     height_mm = 100
 
-    return generate_comp_image(request, reg.comp_num, reg.competitor.fullName, width_mm, height_mm)
+    return generate_comp_pdf(request, reg.comp_num, reg.competitor.fullName, width_mm, height_mm)
