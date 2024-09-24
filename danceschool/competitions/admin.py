@@ -2,6 +2,8 @@ from django import forms
 from django.contrib import admin
 from django.db import transaction
 from django.http import HttpRequest
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import AnonymousUser
@@ -13,7 +15,32 @@ from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
 from .views import register_competitor
 
 
+class CheckNPrintWidget(forms.CheckboxInput):
+    def __init__(self, *args, **kwargs):
+        self.pk = kwargs.pop('pk', None)
+        super().__init__(*args, **kwargs)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        output = super().render(name, value, attrs, renderer)
+        if self.pk and not value:
+            # Button that opens the popup
+            url = reverse('registration_checkin', args=[self.pk])
+            button_html = f'''
+                <a href="{url}" class="related-widget-wrapper-link">
+                    <span style="font-size: 18px; margin-right: 4px;">🖨️</span>
+                </a>
+                '''
+            return mark_safe(f'{output} {button_html}')
+        return mark_safe(output)
+    
+
 class RegistrationInlineForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['comp_checked_in'].widget = CheckNPrintWidget(pk=self.instance.pk)
+
     class Meta:
         model = Registration
         fields = '__all__'
