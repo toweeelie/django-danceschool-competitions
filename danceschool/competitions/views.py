@@ -19,7 +19,7 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
-
+from unidecode import unidecode
 import logging
 
 # Define logger for this file
@@ -243,9 +243,14 @@ def register_competitor(request, comp_id):
                 prelims_reg_obj.save()
 
                 path = reverse('registration_checkin', args=[prelims_reg_obj.id])
-                full_url = request.build_absolute_uri(path)
-
-                return render(request, 'sc/comp_success.html', {'comp_num':comp_num,'checkin_url':full_url})
+                if request.META.get('SERVER_NAME',None): 
+                    # check if it's real request 
+                    full_url = request.build_absolute_uri(path)
+                    return render(request, 'sc/comp_success.html', {'comp_num':comp_num,'checkin_url':full_url})
+                else:
+                    # or csv import
+                    return 
+            
             except IntegrityError:
                 # Handle the unique constraint violation
                 error_message = _("This competitor is already registered to competition.")
@@ -525,7 +530,7 @@ def finals_results(request, comp_id):
     return render(request, 'sc/comp_results.html', context)
     
 
-def generate_comp_pdf(request, comp_num, full_name, width_mm, height_mm):
+def generate_comp_pdf(request, comp_num, full_name, comp_name, width_mm, height_mm):
     
     page_width, page_height = width_mm * mm, height_mm * mm
 
@@ -536,22 +541,27 @@ def generate_comp_pdf(request, comp_num, full_name, width_mm, height_mm):
     pdf_canvas = canvas.Canvas(buffer, pagesize=(page_width, page_height))
 
     # Register the font that supports Cyrillic characters
-    font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' 
-    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_path))
+    font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf' 
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
 
     # Set up font sizes based on page height
-    font_size_comp_num = 0.9 * page_height  # 90% of the page height
+    font_size_comp_num = 0.85 * page_height  # 85% of the page height
     font_size_full_name = 0.04 * page_height  # 4% of the page height
 
     # Draw the full_name at the top of the page (centered horizontally)
-    pdf_canvas.setFont('DejaVuSans-Bold', font_size_full_name)
-    full_name_width = pdf_canvas.stringWidth(full_name, 'DejaVuSans-Bold', font_size_full_name)
+    pdf_canvas.setFont('DejaVuSans', font_size_full_name)
+    full_name_width = pdf_canvas.stringWidth(full_name, 'DejaVuSans', font_size_full_name)
     pdf_canvas.drawString((page_width - full_name_width) / 2, page_height - (font_size_full_name + 5), full_name)
 
     # Draw the comp_num at the center of the page
-    pdf_canvas.setFont('DejaVuSans-Bold', font_size_comp_num)
-    comp_num_width = pdf_canvas.stringWidth(str(comp_num), 'DejaVuSans-Bold', font_size_comp_num)
-    pdf_canvas.drawString((page_width - comp_num_width) / 2, (page_height - font_size_comp_num), str(comp_num))
+    pdf_canvas.setFont('DejaVuSans', font_size_comp_num)
+    comp_num_width = pdf_canvas.stringWidth(str(comp_num), 'DejaVuSans', font_size_comp_num)
+    pdf_canvas.drawString((page_width - comp_num_width) / 2, page_height/2 - font_size_comp_num/3, str(comp_num))
+
+    # Draw the comp_name at the bottom of the page (centered horizontally)
+    pdf_canvas.setFont('DejaVuSans', font_size_full_name)
+    comp_name_width = pdf_canvas.stringWidth(comp_name, 'DejaVuSans', font_size_full_name)
+    pdf_canvas.drawString((page_width - comp_name_width) / 2, (font_size_full_name + 5), comp_name)
 
     # Finalize the PDF
     pdf_canvas.showPage()
@@ -563,7 +573,7 @@ def generate_comp_pdf(request, comp_num, full_name, width_mm, height_mm):
 
     # Return the PDF as a response
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = 'inline; filename="comp_num.pdf"'
+    response['Content-Disposition'] = 'inline; filename="%03d-%s-%s.pdf"' % (comp_num, unidecode(full_name), unidecode(comp_name))
     return response
 
 
@@ -583,7 +593,7 @@ def registration_checkin(request, reg_id):
     reg.comp_checked_in = True
     reg.save()
 
-    width_mm = 150
+    width_mm = 100
     height_mm = 100
 
-    return generate_comp_pdf(request, reg.comp_num, reg.competitor.fullName, width_mm, height_mm)
+    return generate_comp_pdf(request, reg.comp_num, reg.competitor.fullName, reg.comp.title, width_mm, height_mm)

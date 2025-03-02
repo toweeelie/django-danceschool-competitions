@@ -1,13 +1,21 @@
 from django import forms
 from django.contrib import admin
 from django.db import transaction
-from django.http import HttpRequest
+from django.http import HttpRequest,HttpResponse
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import AnonymousUser
 
+from reportlab.lib.pagesizes import mm
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from io import BytesIO
+from PIL import Image
+
+import segno
 import unicodecsv as csv
 from dal import autocomplete
 
@@ -330,3 +338,73 @@ class FinalsResultAdmin(admin.ModelAdmin):
 
         # Allow editing if the user is the owner or a helper
         return request.user in obj.staff.all()
+
+
+def generateQR(self, request, queryset):
+    
+    page_width  = 100 * mm
+    # Set up font sizes based on page width
+    font_size_comp_name = 0.04 * page_width 
+    area_for_comp_name = font_size_comp_name + 5
+    qr_size = 0.3 * page_width
+    area_for_qr_code = qr_size + 5
+    page_height = (area_for_comp_name+area_for_qr_code)*len(queryset) + 5
+
+    # Create a BytesIO buffer to hold the PDF data
+    buffer = BytesIO()
+
+    # Create a canvas with the specified page size
+    pdf_canvas = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    # Register the font that supports Cyrillic characters
+    font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf' 
+    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+
+    # starting point for the first QR code section
+    y_current = page_height 
+
+    for comp in queryset:
+
+        # get competition title
+        comp_name = comp.title
+
+        # Draw the full_name at the top of the page (centered horizontally)
+        y_current -= area_for_comp_name
+        pdf_canvas.setFont('DejaVuSans', font_size_comp_name)
+        full_name_width = pdf_canvas.stringWidth(comp_name, 'DejaVuSans', font_size_comp_name)
+        pdf_canvas.drawString((page_width - full_name_width) / 2, y_current, comp_name)
+
+        # Draw the QR code
+        y_current -= area_for_qr_code
+        path = reverse('redirect_user', args=[comp.id])
+        comp_url = request.build_absolute_uri(path)  
+
+        # Generate the QR code and save it to a buffer
+        qr_buffer = BytesIO()
+        segno.make(comp_url).save(qr_buffer, kind='png', scale=10)
+        qr_buffer.seek(0)
+
+        # Convert the QR code buffer to PIL Image
+        img = Image.open(qr_buffer)
+
+        # Draw the QR code on the PDF   
+        pdf_canvas.drawInlineImage(img, (page_width - qr_size) / 2, y_current, width=qr_size, height=qr_size)
+        qr_buffer.close()
+
+
+    # Finalize the PDF
+    pdf_canvas.showPage()
+    pdf_canvas.save()
+
+    # Get the PDF data from the buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    # Return the PDF as a response
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'inline; filename="competitions.pdf"'
+    return response
+
+
+generateQR.short_description = _('Generate QR code links')
+
+CompetitionAdmin.actions.append(generateQR)
