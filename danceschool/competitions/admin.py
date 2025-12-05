@@ -255,7 +255,7 @@ class CompetitionAdmin(admin.ModelAdmin):
         }),
         (_('Additional settings'),{
             'classes': ('collapse', ),
-            'fields':('staff','comp_roles','finalists_number','pair_finalists','results_visible','csv_file',),
+            'fields':('staff','comp_roles','finalists_number','self_judging_final','results_visible','csv_file',),
         })
     )
 

@@ -29,8 +29,8 @@ class Competition(models.Model):
     finalists_number = models.IntegerField(
         verbose_name=_('Number of finalists per dance role'),
     )
-    pair_finalists = models.BooleanField(
-        _('Paired Final'), default=True, blank=True
+    self_judging_final = models.BooleanField(
+        _('Self Judging Final'), default=False, blank=True
     )
     results_visible = models.BooleanField(
         _('Publish results'), default=False, blank=False
