@@ -19,7 +19,7 @@ import segno
 import unicodecsv as csv
 from dal import autocomplete
 
-from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult
+from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,SelfJudgeResult
 from .views import register_competitor
 
 
@@ -318,6 +318,32 @@ class FinalsResultAdmin(admin.ModelAdmin):
     list_display = ('judge', 'comp_reg','result') 
     search_fields = ('judge__profile__first_name', 'judge__profile__last_name', 'judge__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
     list_filter = ('judge',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        
+        if request.user.is_superuser:
+            return qs
+        else:
+            return qs.filter(comp_reg__comp__staff=request.user)
+
+    def has_change_permission(self, request, obj=None):
+        # Allow editing if the user is a superuser
+        if request.user.is_superuser:
+            return True
+
+        # If no specific object is provided, default to checking if they can view the list
+        if obj is None:
+            return True
+
+        # Allow editing if the user is the owner or a helper
+        return request.user in obj.staff.all()
+
+@admin.register(SelfJudgeResult)
+class SelfJudgeResultAdmin(admin.ModelAdmin):
+    list_display = ('competitor', 'comp_reg','result') 
+    search_fields = ('competitor__profile__first_name', 'competitor__profile__last_name', 'competitor__comp__title', 'comp_reg__competitor__first_name', 'comp_reg__competitor__last_name')
+    list_filter = ('competitor',)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

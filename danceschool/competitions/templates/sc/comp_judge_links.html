@@ -1,0 +1,19 @@
+{% extends "cms/home.html" %}
+{% load i18n %}
+{% load segno_qr %}
+
+{% block content %}
+
+<table>
+{% for name, url in links_dict.items %}
+    <tr>
+        <td>
+            <details>
+                <summary>{{ name }}</summary>
+                <p>{% segno_qr url %}</p>
+            </details>
+        </td>
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}

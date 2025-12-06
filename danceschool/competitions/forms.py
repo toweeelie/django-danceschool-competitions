@@ -130,11 +130,13 @@ class FinalsResultsForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
        
+        own_pair = self.initial.get('own_pair', None)
         registrations = self.initial.get('registrations')
         comp = self.initial.get('comp')
         for registration in registrations:
+            is_visible = (registration != own_pair)
             self.fields[f'competitor_{registration.comp_num}'] = forms.IntegerField(
-                label=f'{registration.comp_num}/{registration.final_partner.comp_num} '+
+                label='' if not is_visible else f'{registration.comp_num}/{registration.final_partner.comp_num} '+
                     f'{registration.competitor.first_name} - '+
                     f'{registration.final_partner.competitor.first_name}',
                     #f'{registration.competitor.first_name}{registration.competitor.last_name[0]} - '+
@@ -142,11 +144,13 @@ class FinalsResultsForm(forms.Form):
                 min_value=1,
                 max_value=comp.finalists_number,
                 required=True,
+                initial=None if is_visible else comp.finalists_number,
+                widget=forms.HiddenInput() if not is_visible else forms.NumberInput(),
             )
             self.fields[f'comment_{registration.comp_num}'] = forms.CharField(
                 label='',
                 max_length=100,
-                widget=forms.TextInput(attrs={'placeholder':'Comments','style': 'width: 100%'}),
+                widget=forms.HiddenInput() if not is_visible else forms.TextInput(attrs={'placeholder':'Comments','style': 'width: 100%'}),
                 required=False,
             )
 

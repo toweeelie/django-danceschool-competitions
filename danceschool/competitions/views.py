@@ -3,13 +3,14 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect,HttpResponse,Http404
 from django.utils.translation import ugettext_lazy as _
 from django.db import IntegrityError
+from urllib3 import request
 from danceschool.core.models import Customer
 from .forms import SkatingCalculatorForm, InitSkatingCalculatorForm
 
 import unicodecsv as csv
 from functools import cmp_to_key
 
-from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,DanceRole
+from .models import Competition,Judge,Registration,PrelimsResult,FinalsResult,DanceRole,SelfJudgeResult
 from .forms import CompetitionRegForm,PrelimsResultsForm,FinalsResultsForm
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -264,6 +265,17 @@ def register_competitor(request, comp_id):
 def submit_results(request, comp_id):
 
     comp = Competition.objects.get(id=comp_id)
+
+    if comp.self_judging_final and comp.stage == 'f' and request.user in comp.staff.all():
+        results = SelfJudgeResult.objects.filter(comp_reg__comp=comp).order_by('competitor').all()
+        finalists = Registration.objects.filter(comp=comp,finalist=True).order_by('comp_role')
+        results_ready = set([j.competitor for j in finalists]).issubset({result.competitor for result in results})      
+        if results_ready:
+            return redirect('finals_results', comp_id=comp_id)
+
+        links_dict = { finalist.competitor.fullName: request.build_absolute_uri(reverse('submit_self_results', args=[comp.id,finalist.id])) for finalist in finalists }
+        return render(request, 'sc/comp_judge_links.html', {'links_dict':links_dict})
+
     judge = Judge.objects.filter(comp=comp,profile=request.user).first()
 
     if not judge or (comp.stage in ['r','p'] and not judge.prelims_roles) or (comp.stage in ['d','f'] and not judge.finals):
@@ -324,6 +336,41 @@ def submit_results(request, comp_id):
 
     return render(request, 'sc/comp_judge.html', {'form': form, 'comp': comp})
 
+def submit_self_results(request, comp_id, reg_id):
+    comp = get_object_or_404(Competition, id=comp_id)
+    reg = get_object_or_404(Registration, id=reg_id, comp=comp)
+    if not comp.self_judging_final or comp.stage != 'f':
+        error_message = _("Current user is not a judge for this competition stage.")
+        return render(request, 'sc/comp_judge.html', {'comp': comp, 'error_message':error_message})
+    
+    registration_dict = {}
+    registration_dict['pairs'] = Registration.objects.filter(comp=comp,final_partner__isnull=False).order_by('final_heat_order')
+    own_pair = [r for r in registration_dict['pairs'] if r == reg or r.final_partner == reg][0]
+
+    redirect_view = 'finals_results'
+    if SelfJudgeResult.objects.filter(competitor=reg.competitor,comp_reg__comp=comp).exists():
+        return redirect(redirect_view, comp_id=comp_id)
+
+    if request.method == 'POST':
+        form = FinalsResultsForm(request.POST,initial={'comp': comp,'registrations':registration_dict['pairs'], 'own_pair': own_pair})
+        if form.is_valid():
+            try:
+                for registrations in registration_dict.values():
+                    for r in registrations:
+                        comp_res = form.cleaned_data[f'competitor_{r.comp_num}']
+                        comp_comment = form.cleaned_data[f'comment_{r.comp_num}']
+                        res_obj = SelfJudgeResult.objects.create(competitor = reg.competitor, comp_reg=r, 
+                                                                result = comp_res, comment = comp_comment)
+                        res_obj.save()
+                return redirect(redirect_view, comp_id=comp_id)
+            except IntegrityError:
+                # Handle the unique constraint violation
+                error_message = _("This competitor already submitted results.")
+                return render(request, 'sc/comp_judge.html', {'form': form, 'comp': comp, 'error_message':error_message})
+    else:   
+        form = FinalsResultsForm(initial={'comp': comp,'registrations':registration_dict['pairs'], 'own_pair': own_pair})
+
+    return render(request, 'sc/comp_judge.html', {'form': form, 'comp': comp})
 
 def prelims_results(request, comp_id):
     comp = get_object_or_404(Competition, pk=comp_id)
@@ -484,29 +531,43 @@ def prelims_results(request, comp_id):
 
 def finals_results(request, comp_id):
     comp = get_object_or_404(Competition, pk=comp_id)
-    judges = Judge.objects.filter(comp=comp,finals=True).order_by('profile').all()
-    results = FinalsResult.objects.filter(judge__comp=comp).order_by('judge__profile').all()
-    results_ready = set(judges).issubset({result.judge for result in results})
     context = {'comp_id':comp_id}
-    if request.user in [j.profile for j in judges]:
-        if not results_ready:
-            if request.user not in {result.judge.profile for result in results}:
+    if comp.self_judging_final:
+        judges = Registration.objects.filter(comp=comp,finalist=True).order_by('competitor').all()
+        results = SelfJudgeResult.objects.filter(comp_reg__comp=comp).order_by('competitor').all()
+        results_ready = set([j.competitor for j in judges]).issubset({result.competitor for result in results})    
+        if request.user in comp.staff.all():
+            if not results_ready:
                 return redirect('submit_results', comp_id=comp_id)
-            error_message = _("Waiting other judges to finish.")
-            context['error_message'] = error_message
+        else:
+            if not comp.results_visible or not results_ready:
+                error_message = _("Finals results are not available yet.")
+                context['error_message'] = error_message
+        judges_list = [j.competitor.first_name for j in judges]
     else:
-        if not comp.results_visible or not results_ready:
-            error_message = _("Finals results are not available yet.")
-            context['error_message'] = error_message
-    
+        judges = Judge.objects.filter(comp=comp,finals=True).order_by('profile').all()
+        results = FinalsResult.objects.filter(judge__comp=comp).order_by('judge__profile').all()
+        results_ready = set(judges).issubset({result.judge for result in results})
+
+        if request.user in [j.profile for j in judges]:
+            if not results_ready:
+                if request.user not in {result.judge.profile for result in results}:
+                    return redirect('submit_results', comp_id=comp_id)
+                error_message = _("Waiting other judges to finish.")
+                context['error_message'] = error_message
+        else:
+            if not comp.results_visible or not results_ready:
+                error_message = _("Finals results are not available yet.")
+                context['error_message'] = error_message
+        judges_list = [j.profile.first_name for j in judges]
+
     if 'error_message' not in context:
         results_dict = {}
         for res in results:
             if res.comp_reg not in results_dict:
                 results_dict[res.comp_reg] = []
             results_dict[res.comp_reg].append(res.result)
-
-        judges_list = [j.profile.first_name for j in judges]
+        
         tmp_dict = {
             (
                 f'{reg.comp_num}/{reg.final_partner.comp_num}',
